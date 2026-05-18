@@ -1,11 +1,11 @@
-# Edit History
-
-*Created: 2026-05-18 18:37 IST*
-*Last Updated: 2026-05-18 19:30 IST*
-
 ---
-
-## 2026-05-18
+kind: edit_chunk
+id: 2026-05-18-193000-T1-completion
+created_at: 2026-05-18 19:30 IST
+task_ids: [T1, T2, T3, T4, T5]
+source_branch: main
+source_commit: 1f9f49d
+---
 
 #### 19:30 IST - T1: TypeScript rewrite COMPLETED + T2-T5 created + README + memory bank updated
 - Modified `memory-bank/tasks/T1.md` - Updated status to COMPLETED, added full progress, files, decisions, known issues, next steps
@@ -23,12 +23,3 @@
 - Created `src/test-collector.ts` - Collector + DB integration test
 - Created `src/test-analyzer.ts` - Drain detection test with fake data
 - Created `src/show-data.ts` - Live data display script
-
-#### 18:37 IST - INIT: Memory bank initialized for mac-process-monitor
-- Created `memory-bank/tasks.md` - Task registry with T1
-- Created `memory-bank/session_cache.md` - Session tracking
-- Created `memory-bank/activeContext.md` - Current context
-- Created `memory-bank/edit_history.md` - Edit history (this file)
-- Created `memory-bank/implementation-details/` - Knowledge layer directory
-- Created `memory-bank/tasks/T1.md` - First task: battery tracking enhancement
-- Created `memory-bank/sessions/2026-05-18-evening.md` - Session file for current work

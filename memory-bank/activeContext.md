@@ -1,23 +1,40 @@
 # Active Context
 
-*Last Updated: 2026-05-18 18:37 IST*
+*Last Updated: 2026-05-18 19:30 IST*
 
 ## Current Tasks
-1. **[T1]**: Enhance mac-process-monitor with battery tracking (HIGH priority)
-   - Status: 🔄 IN PROGRESS
-   - Current Focus: Audit existing codebase, plan battery integration
-   - Existing: Python process monitor with CPU/memory thresholds
-   - Goal: Add battery level monitoring + rapid drain detection
+1. **[T1]**: TypeScript Rewrite — Core Monitor with Battery + Process Tracking (HIGH priority)
+   - Status: ✅ COMPLETED (2026-05-18)
+   - Output: Full TypeScript rewrite with SQLite time-series storage
+   - Files: `src/core/`, `src/storage/`, `src/types/`, `src/main.ts`
+
+2. **[T2]**: Telegram/OpenClaw Alert Integration (HIGH priority)
+   - Status: ⬜ PENDING
+   - Next: Add sendAlert() to Monitor.ts, format drain event messages
+
+3. **[T3]**: Per-Process History Query Interface (MEDIUM priority)
+   - Status: ⬜ PENDING
+   - Next: Add process-centric DB queries, build CLI tool
+
+4. **[T4]**: Web Dashboard for Live Monitoring (MEDIUM priority)
+   - Status: ⬜ PENDING
+   - Next: HTTP server + HTML dashboard with live charts
+
+5. **[T5]**: Swift Menubar App (LOW priority)
+   - Status: ⬜ PENDING
+   - Next: Port proven TypeScript logic to Swift after T2-T4 stable
+
+## Completed Tasks (Recent)
+- T1: TypeScript rewrite — battery, process tracking, drain detection, SQLite storage
 
 ## Next Steps
-- Add battery monitoring to collector.py
-- Implement drain rate calculation in analyzer.py
-- Add Telegram/OpenClaw alert integration
-- Update config schema for battery thresholds
+- T2: Telegram alerting — integrate OpenClaw message tool
+- T3: Process queries — `npx tsx src/query.ts --process Chrome --since 2h`
+- T4: Web dashboard — live battery/CPU charts on port 3456
+- T5: Swift menubar — native macOS app (future)
 
 ## System Status
-- **Collector**: ✅ CPU, memory, disk tracking (psutil)
-- **Analyzer**: ✅ Threshold analysis with duration tracking
-- **Logger**: ✅ Rotating file logs
-- **Battery**: ⬜ Not implemented
-- **Alerts**: ⬜ Not implemented
+- **Battery**: 74%, not charging, 549 min remaining
+- **Memory**: 94.1% used (8GB machine)
+- **DB**: ~/.procmon/monitor.db with snapshots + process samples
+- **Tests**: All core modules validated (test-basic, test-collector, test-analyzer, show-data)

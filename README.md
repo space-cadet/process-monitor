@@ -1,78 +1,103 @@
-# MacOS Process Monitor
+# mac-process-monitor
 
-A lightweight monitoring tool for MacOS that tracks system processes and logs those consuming excessive CPU or memory resources.
+A macOS system monitor that tracks battery drain and correlates it with CPU-intensive processes. Built in TypeScript with SQLite time-series storage.
 
-## Features
+## What It Does
 
-- Monitor all running processes on MacOS
-- Track CPU and memory usage for each process
-- Set configurable thresholds for "excessive" resource usage
-- Log processes that exceed thresholds
-- Maintain timestamped logs for later analysis
-- Run with minimal impact on system performance
+- **Monitors battery level** in real-time (via systeminformation)
+- **Detects rapid drain** — alerts when battery drops faster than configured threshold
+- **Correlates with processes** — identifies which apps spiked CPU during drain events
+- **Stores time-series data** — SQLite DB for history, trends, and analysis
+- **Planned**: Telegram alerts, web dashboard, Swift menubar app
 
-## Installation
-
-### Prerequisites
-
-- Python 3.8 or higher
-- MacOS 10.14 (Mojave) or newer
-
-### Setup
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/mac-process-monitor.git
-cd mac-process-monitor
-```
-
-2. Set up a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-### Basic Usage
+## Quick Start
 
 ```bash
-python -m procmon.cli start
+# Install dependencies
+pnpm install
+
+# Run the monitor (samples every 30s, logs to ~/.procmon/monitor.db)
+npx tsx src/main.ts
+
+# Show current system data
+npx tsx src/show-data.ts
+
+# Run diagnostic tests
+npx tsx src/test-basic.ts      # Battery + process validation
+npx tsx src/test-collector.ts  # Collector + DB integration
+npx tsx src/test-analyzer.ts   # Drain detection with fake data
 ```
 
-### Configuration
-
-Edit the config file at `config/config.yaml` to customize:
-- CPU and memory thresholds
-- Monitoring interval
-- Log rotation settings
-- Process whitelist/blacklist
-
-## Project Structure
+## Architecture
 
 ```
-mac-process-monitor/
-├── bin/                  # Command-line scripts
-├── procmon/              # Main package
-│   ├── collector.py      # Process data collection
-│   ├── analyzer.py       # Threshold analysis
-│   ├── logger.py         # Logging module
-│   ├── config.py         # Configuration management
-│   └── cli.py            # Command-line interface
-├── tests/                # Unit tests
-├── config/               # Configuration files
-└── README.md             # Project documentation
+src/
+  types/
+    index.ts              # All TypeScript interfaces
+  core/
+    SystemCollector.ts    # Battery + process sampling
+    DrainAnalyzer.ts      # Sliding window drain detection
+    Monitor.ts            # Orchestrator loop
+  storage/
+    TimeSeriesDB.ts       # SQLite time-series storage
+  main.ts                 # Entry point
 ```
+
+## How Drain Detection Works
+
+1. **Sample** battery + top processes every 30 seconds
+2. **Store** in SQLite (snapshots table + process_samples table)
+3. **Analyze** sliding 5-minute window for battery drop
+4. **Trigger** if drop rate exceeds threshold (default: 1%/min for 2+ minutes)
+5. **Correlate** — find processes with highest average CPU during the drain window
+6. **Alert** — Telegram notification with drain details + top processes
+
+## Configuration
+
+Edit `src/main.ts` or pass a config object to `Monitor`:
+
+```typescript
+const monitor = new Monitor({
+  sampleIntervalSeconds: 30,
+  dbPath: '~/.procmon/monitor.db',
+  retentionDays: 30,
+  alert: {
+    enabled: true,
+    drainThreshold: 1.0,    // % per minute
+    minDuration: 2,         // minutes
+    cooldownMinutes: 10,    // between alerts
+  },
+});
+```
+
+## Database Schema
+
+**snapshots** — system-wide metrics per sample
+- timestamp, battery_percent, is_charging, cpu_total, memory_total
+
+**process_samples** — per-process metrics per sample
+- snapshot_id, pid, name, cpu_percent, memory_percent, rss_mb, cmdline
+
+**drain_events** — detected rapid drain incidents
+- id, start_time, end_time, start_percent, end_percent, drain_rate, top_processes_json
+
+## Project Roadmap
+
+| Task | Status | Description |
+|------|--------|-------------|
+| T1 | ✅ | TypeScript rewrite with core monitoring |
+| T2 | ⬜ | Telegram/OpenClaw alert integration |
+| T3 | ⬜ | Per-process history query interface |
+| T4 | ⬜ | Web dashboard for live monitoring |
+| T5 | ⬜ | Swift menubar app (future) |
+
+## Tech Stack
+
+- **TypeScript 5.x** — Type-safe Node.js
+- **systeminformation** — Cross-platform system stats
+- **better-sqlite3** — Fast synchronous SQLite
+- **tsx** — TypeScript execution without compilation
 
 ## License
 
-[MIT License](LICENSE)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+MIT
