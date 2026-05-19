@@ -1,45 +1,48 @@
-# Product Context: MacOS Process Monitor
+# Product Context: mac-process-monitor
 
 ## Problem Statement
-MacOS users often encounter system slowdowns due to applications consuming excessive resources. Identifying these resource-intensive processes can be challenging, especially when the issues are intermittent or occur over time. While the built-in Activity Monitor provides real-time information, it lacks persistent logging of problematic processes and automated threshold monitoring.
+macOS users often don't notice when an app starts draining their battery aggressively — until it's too late. Background processes, browser tabs with runaway JavaScript, or apps stuck in a loop can silently consume CPU and kill battery life. Activity Monitor shows real-time data but doesn't track history or alert you when drain accelerates.
 
 ## Solution
-Our MacOS Process Monitor addresses these challenges by:
-- Continuously monitoring system processes in the background
-- Automatically identifying processes that exceed resource thresholds
-- Creating detailed logs of resource-intensive processes with timestamps
-- Providing historical data for troubleshooting recurring issues
+A lightweight background monitor that:
+- **Samples** battery level + top CPU processes every 30 seconds
+- **Stores** time-series data in SQLite for history and trend analysis
+- **Detects** rapid battery drain using a sliding 5-minute window
+- **Correlates** drain events with the processes that spiked CPU during that window
+- **Alerts** via Telegram/OpenClaw when drain exceeds configurable thresholds
+
+## Key Use Cases
+
+### Catch Runaway Background Processes
+"My battery dropped 40% in an hour — what was running?" The monitor identifies the exact processes with highest average CPU during the drain window.
+
+### Track Battery Health Over Time
+SQLite storage means you can query historical data: "Show me drain events from last week" or "Which apps consistently spike when I'm on battery?"
+
+### Proactive Alerts
+Get notified within 2-5 minutes of drain starting, not when your battery hits 10%. Configurable thresholds and cooldown prevent spam.
+
+### Development & Debugging
+Developers monitoring resource usage of their own apps while testing on real battery power.
 
 ## User Experience Goals
-- **Simplicity**: Easy to configure and use without technical expertise
-- **Unobtrusiveness**: Minimal impact on system resources while monitoring
-- **Informativeness**: Clear, detailed logs that facilitate problem-solving
-- **Reliability**: Consistent monitoring without crashes or missed events
-- **Configurability**: Adaptable to different user needs and system profiles
-
-## Use Cases
-
-### Identifying Problematic Applications
-Users can review logs to identify which applications consistently consume excessive resources, helping them make decisions about software alternatives or upgrades.
-
-### Troubleshooting System Slowdowns
-When users experience system performance issues, they can check logs to see which processes were consuming resources at that time.
-
-### System Optimization
-System administrators can use the tool to optimize workstation configurations by identifying and addressing resource usage patterns across multiple systems.
-
-### Development Environment Monitoring
-Developers can monitor resource usage while testing applications to ensure their software operates efficiently.
+- **Invisible**: Runs in background, minimal CPU overhead (<1%)
+- **Actionable**: Alerts name the culprits, not just "battery dropping"
+- **Persistent**: History survives reboots; SQLite is self-contained
+- **Configurable**: Thresholds, intervals, and DB path are adjustable
+- **Extensible**: Dashboard (T4) and native menubar app (T5) build on the same DB
 
 ## Non-Goals
-- Replacing Activity Monitor's real-time visualization capabilities
-- Automatically terminating problematic processes
-- Providing network usage monitoring (initial version)
-- Full system performance analysis beyond process resource usage
+- Replacing Activity Monitor's real-time process table
+- Automatically killing processes (alert-only for now)
+- Network traffic monitoring (out of scope)
+- Cross-device sync (single-machine tool)
+
+## Architecture in One Sentence
+TypeScript Node.js process → `systeminformation` collector → sliding-window `DrainAnalyzer` → `better-sqlite3` storage → OpenClaw/Telegram alerts.
 
 ## Future Considerations
-- Simple GUI for configuration and log viewing
-- Process termination capabilities with user confirmation
-- Network usage monitoring
-- Integration with notification systems
-- Statistical analysis of resource usage patterns over time
+- Per-process history queries and CLI tool (T3)
+- Web dashboard with live battery/CPU charts (T4)
+- Swift menubar app with native macOS notifications (T5)
+- Machine learning on historical patterns to predict drain before it happens
