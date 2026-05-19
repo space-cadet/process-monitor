@@ -1,6 +1,6 @@
 # Active Context
 
-*Last Updated: 2026-05-19 14:53 IST*
+*Last Updated: 2026-05-19 15:20 IST*
 
 ## Current Tasks
 1. **[T1]**: TypeScript Rewrite — Core Monitor with Battery + Process Tracking (HIGH priority)

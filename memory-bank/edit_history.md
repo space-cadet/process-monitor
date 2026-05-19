@@ -1,9 +1,38 @@
 # Edit History
 
 *Created: 2026-05-18 18:37 IST*
-*Last Updated: 2026-05-18 19:30 IST*
+*Last Updated: 2026-05-19 15:20 IST*
 
 ---
+
+## 2026-05-19
+
+#### 15:20 IST - T1: Memory bank full update + implementation docs
+- Created `memory-bank/implementation-details/core-pipeline.md` - Comprehensive implementation documentation covering SystemCollector, DrainAnalyzer, TimeSeriesDB, Monitor orchestrator, type system, ESM conventions, known quirks
+- Updated `memory-bank/session_cache.md` - Current session metadata, expanded T1 status, system status
+- Updated `memory-bank/tasks/T1.md` - Added expanded monitoring progress, known issues, decisions
+- Updated `memory-bank/tasks.md` - Timestamp and overview update
+- Updated `memory-bank/.cursorrules` - Full rewrite: architecture patterns, data model, error handling, project evolution
+- Updated `memory-bank/projectbrief.md` - Full rewrite: cross-platform scope, expanded metrics, success criteria
+- Updated `memory-bank/systemPatterns.md` - Full rewrite: pipeline architecture, component details, design patterns, technical decisions
+
+#### 14:42 IST - T1: Expanded monitoring + bug fixes
+- Modified `src/types/index.ts` - Expanded SystemSnapshot (15 new fields) and ProcessSnapshot (4 new fields)
+- Modified `src/core/SystemCollector.ts` - Added CPU breakdown, memory/swap/load/disk/network/fs/temp collection; fixed currentLoad casing bug
+- Modified `src/core/Monitor.ts` - Fixed sendAlert() to format proper drain event messages
+- Modified `src/storage/TimeSeriesDB.ts` - Added 15 snapshot columns + 4 process columns; added migrateSchema() auto-migration; enabled WAL mode
+- Modified `src/test-collector.ts` - Display all new expanded metrics
+- Modified `src/show-data.ts` - Display all new expanded metrics
+- Updated `memory-bank/techContext.md` - Replaced stale Python stack with actual TypeScript stack
+- Updated `memory-bank/productContext.md` - Updated to battery drain use case
+- Updated `memory-bank/progress.md` - Updated from 'Initial Setup' to 'T1 Complete'
+- Updated `memory-bank/activeContext.md` - Updated with expanded monitoring status
+- Updated `memory-bank/edit_history.md` - Added 2026-05-19 entries
+
+#### 14:00 IST - T1: Memory bank sync techContext + productContext + progress
+- Updated `memory-bank/techContext.md` - Replaced stale Python references with TypeScript stack
+- Updated `memory-bank/productContext.md` - Rewrote for battery drain detection use case
+- Updated `memory-bank/progress.md` - Updated milestones and timeline
 
 ## 2026-05-18
 
@@ -24,7 +53,7 @@
 - Created `src/test-analyzer.ts` - Drain detection test with fake data
 - Created `src/show-data.ts` - Live data display script
 
-#### 18:37 IST - INIT: Memory bank initialized for mac-process-monitor
+#### 18:37 IST - SETUP: Memory bank initialized for mac-process-monitor
 - Created `memory-bank/tasks.md` - Task registry with T1
 - Created `memory-bank/session_cache.md` - Session tracking
 - Created `memory-bank/activeContext.md` - Current context

@@ -1,11 +1,13 @@
 # Memory Bank — Mac Process Monitor
 
 *Created: 2026-05-18 18:37 IST*
-*Last Updated: 2026-05-18 19:30 IST*
+*Last Updated: 2026-05-19 14:42 IST*
 
 ## Overview
 
-A macOS system monitoring app that tracks battery level, CPU usage, and memory consumption. Alerts when battery drains rapidly (indicating runaway CPU processes). Rewritten in TypeScript with SQLite time-series storage.
+A cross-platform system monitor that tracks battery level, CPU, memory, disk I/O, network activity, and per-process resource usage. Stores time-series data in SQLite and detects rapid battery drain correlated with CPU-intensive processes. Built in TypeScript with `systeminformation` + `better-sqlite3`.
+
+Originally planned as a macOS-only Python tool; rewritten in TypeScript during T1 when cross-platform potential became clear. Expanded monitoring added 15+ new metrics on 2026-05-19.
 
 ## Active Tasks
 
@@ -20,7 +22,7 @@ A macOS system monitoring app that tracks battery level, CPU usage, and memory c
 
 | ID | Title | Status | Priority | Started | Completed | Dependencies | Details |
 |----|-------|--------|----------|---------|-----------|--------------|---------|
-| T1 | TypeScript Rewrite — Core Monitor | ✅ | HIGH | 2026-05-18 | 2026-05-18 | - | [Details](tasks/T1.md) |
+| T1 | TypeScript Rewrite — Core Monitor | ✅ | HIGH | 2026-05-18 | 2026-05-19 | - | [Details](tasks/T1.md) |
 
 ## Status Summary
 

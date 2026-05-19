@@ -1,6 +1,8 @@
 # Progress Report: mac-process-monitor
 
-## Project Status: T1 Complete, T2-T5 Pending
+*Last Updated: 2026-05-19 15:20 IST*
+
+## Project Status: T1 Complete + Expanded, T2-T5 Pending
 
 ### What Works
 - **T1 — TypeScript Core Monitor**: ✅ COMPLETE

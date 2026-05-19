@@ -1,66 +1,73 @@
-# Project Intelligence: MacOS Process Monitor
+# Project Intelligence: mac-process-monitor
 
 ## Project Patterns
 
 ### Architecture Patterns
-- Project follows a modular design with clear separation between core functionality and interfaces
-- Core components communicate through standardized messages to facilitate future language migration
-- Interfaces (CLI, GUI, web) share the same core functionality but with different presentation
+- **Collector → Analyzer → Storage → Alert** pipeline: Each component is independent and swappable
+- `SystemCollector` is pure data gathering; knows nothing about thresholds or alerts
+- `DrainAnalyzer` is pure math; knows nothing about how data was collected
+- `TimeSeriesDB` is pure storage; knows nothing about analysis logic
+- `Monitor` is the orchestrator; wires components together and handles lifecycle
 
-### Implementation Patterns
-- Python with psutil for initial implementation
-- Core functionality designed with language-agnostic principles for potential future Go or Rust implementation
-- Simple data structures (dicts, lists, primitives) used for easy translation to other languages
+### Data Model Patterns
+- `SystemSnapshot` is the universal unit of data — one timestamp, everything at that moment
+- Process data is denormalized into `process_samples` table (per snapshot, up to 50 rows) for fast queries
+- Drain events store `top_processes_json` as serialized array — denormalized for single-row retrieval
+- All timestamps are Unix epoch milliseconds (integer) for SQLite efficiency
 
-### User Experience Patterns
-- Command-line interface for initial functionality
-- Future GUI interface planned using PyQt/PySide
-- Future web interface planned with Python backend and HTML/JS frontend
-- All interfaces should provide consistent functionality and user experience
+### Error Handling Patterns
+- `tick()` catches all errors and logs to console — monitor never crashes on a bad sample
+- `systeminformation` calls use `.catch(() => null)` for optional metrics (disk IO, network, temp)
+- DB schema auto-migrates on startup: missing columns are added via `ALTER TABLE`
+
+### Import Conventions
+- Source files use `.js` extensions in import paths for ESM compatibility
+- `tsx` resolves `.ts` at runtime; `tsc` compiles to `.js` so paths remain valid in `dist/`
 
 ## Project Preferences
 
 ### Code Structure
-- Clear separation between core functionality and interfaces
-- Modular design with well-defined component boundaries
-- Comprehensive docstrings and type hints
-- Tests for all core functionality
+- One class per file in `src/core/` and `src/storage/`
+- All interfaces in `src/types/index.ts` — single source of truth
+- Test scripts are runnable TypeScript files, not formal test suites
+- `console.log` for now; structured logging is T3/T4 scope
 
-### Configuration
-- YAML-based configuration with sensible defaults
-- Support for user-specific configuration overrides
-- Command-line options for overriding configuration settings
+### Sampling Strategy
+- Default 30-second interval — frequent enough to catch drain events, sparse enough for low overhead
+- Top 50 processes by CPU stored per snapshot (configurable)
+- Drain analysis uses sliding 5-minute window (~11 samples at 30s interval)
 
-### Logging
-- Structured logging with timestamp, process information, and resource usage
-- Log rotation to manage disk usage
-- Multiple log levels (INFO, WARNING, ERROR)
+### Alert Design
+- Alert message is formatted as plain text with emoji, suitable for Telegram or console
+- Cooldown: 10 minutes between alerts to prevent spam
+- Alert only fires when: not charging, drain rate > threshold, sustained for min duration
 
 ## Project Evolution
 
 ### Current Phase
-- Initial setup and architecture design
-- Focus on core functionality implementation
+- T1 COMPLETE: Core monitor with expanded metric collection (CPU breakdown, memory, swap, load, disk IO, network, disk usage, temp)
+- Bugs fixed: `currentLoad` casing, `sendAlert()` stub
 
 ### Future Phases
-- Command-line interface implementation
-- GUI interface implementation
-- Web interface implementation
-- Potential migration to Go or Rust
+- T2: OpenClaw/Telegram alerting with real message dispatch
+- T3: Per-process history queries (CLI tool + DB aggregation)
+- T4: Web dashboard with live charts
+- T5: Swift menubar app (reuses SQLite DB, ports drain detection algorithm)
 
 ## Known Challenges
 
-### Cross-Platform Considerations
-- Initial focus on MacOS
-- psutil provides cross-platform capabilities if needed in the future
-- Core architecture designed to be platform-agnostic
+### Cross-Platform
+- Originally branded "macOS" but TypeScript + systeminformation works on Linux/Windows too
+- Battery API returns zeros on desktop/VPS systems (no battery)
+- CPU temperature often `null` on VMs and some laptops (no thermal sensors exposed)
+- Windows path handling: `~/.procmon` won't expand correctly, needs `%USERPROFILE%`
 
-### Performance Considerations
-- Minimize monitoring overhead
-- Efficient process data collection
-- Optimized log writing and rotation
+### Performance
+- 50 processes × ~11 columns per snapshot = ~550 DB writes per tick
+- WAL mode mitigates write-lock contention for concurrent readers
+- Periodic cleanup: 1% random chance per tick (not ideal — should be scheduled)
 
-### Interface Considerations
-- Consistent experience across multiple interfaces
-- Shared core functionality with different presentation layers
-- Efficient communication between components
+### Data Quality
+- Process CPU from `systeminformation` is point-in-time, not averaged over interval
+- PID reuse means process identity across snapshots is name-based, not PID-based
+- `currentLoad()` may return `undefined` on macOS (use `avgLoad` fallback)
