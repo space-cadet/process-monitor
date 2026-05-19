@@ -7,18 +7,26 @@
     "build": "tsc",
     "dev": "tsx src/main.ts",
     "start": "node dist/main.js",
+    "dashboard": "tsx src/dashboard.ts",
     "test": "jest"
   },
-  "keywords": ["macos", "battery", "monitor", "cpu", "typescript"],
+  "keywords": [
+    "macos",
+    "battery",
+    "monitor",
+    "cpu",
+    "typescript"
+  ],
   "author": "Deepak Vaid",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0",
-    "tsx": "^4.19.0"
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
   },
   "dependencies": {
-    "systeminformation": "^5.25.0",
-    "better-sqlite3": "^12.0.0"
+    "better-sqlite3": "^12.0.0",
+    "systeminformation": "^5.25.0"
   }
 }

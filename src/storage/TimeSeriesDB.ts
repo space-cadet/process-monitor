@@ -219,6 +219,36 @@ export class TimeSeriesDB {
     return stmt.all(cutoff) as SystemSnapshot[];
   }
 
+  /**
+   * Returns raw snapshot rows (newest first) for the dashboard API.
+   * Includes all columns directly from the DB — no type reconstruction.
+   */
+  getRecentSnapshotsRaw(minutes: number = 60): any[] {
+    const cutoff = Date.now() - minutes * 60000;
+    const stmt = this.db.prepare(`
+      SELECT * FROM snapshots WHERE timestamp > ? ORDER BY timestamp DESC
+    `);
+    return stmt.all(cutoff);
+  }
+
+  /**
+   * Returns the most recent process samples from the latest snapshot.
+   */
+  getLatestProcesses(limit: number = 20): any[] {
+    const latest = this.db.prepare(`
+      SELECT id FROM snapshots ORDER BY timestamp DESC LIMIT 1
+    `).get() as { id: number } | undefined;
+    if (!latest) return [];
+
+    const stmt = this.db.prepare(`
+      SELECT * FROM process_samples
+      WHERE snapshot_id = ?
+      ORDER BY cpu_percent DESC
+      LIMIT ?
+    `);
+    return stmt.all(latest.id, limit);
+  }
+
   getDrainEvents(since?: number): DrainEvent[] {
     let sql = 'SELECT * FROM drain_events';
     const params: any[] = [];
