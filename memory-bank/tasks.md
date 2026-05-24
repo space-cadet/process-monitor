@@ -1,7 +1,7 @@
 # Memory Bank — Mac Process Monitor
 
 *Created: 2026-05-18 18:37 IST*
-*Last Updated: 2026-05-18 19:30 IST*
+*Last Updated: 2026-05-25 00:52 IST*
 
 ## Overview
 
@@ -11,9 +11,9 @@ A macOS system monitoring app that tracks battery level, CPU usage, and memory c
 
 | ID | Title | Status | Priority | Started | Dependencies | Details |
 |----|-------|--------|----------|---------|--------------|---------|
+| T4 | Web Dashboard for Live Monitoring | 🔄 | MEDIUM | 2026-05-18 | T1 | [Details](tasks/T4.md) |
 | T2 | Telegram/OpenClaw Alert Integration | ⬜ | HIGH | 2026-05-18 | T1 | [Details](tasks/T2.md) |
 | T3 | Per-Process History Query Interface | ⬜ | MEDIUM | 2026-05-18 | T1 | [Details](tasks/T3.md) |
-| T4 | Web Dashboard for Live Monitoring | ⬜ | MEDIUM | 2026-05-18 | T1 | [Details](tasks/T4.md) |
 | T5 | Swift Menubar App (Future) | ⬜ | LOW | 2026-05-18 | T1-T4 | [Details](tasks/T5.md) |
 
 ## Completed Tasks
@@ -24,7 +24,7 @@ A macOS system monitoring app that tracks battery level, CPU usage, and memory c
 
 ## Status Summary
 
-- **Active**: 0
-- **Completed**: 1
+- **Active**: 1 (T4)
+- **Completed**: 1 (T1)
 - **Paused**: 0
 - **Total**: 5
