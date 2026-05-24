@@ -131,8 +131,10 @@ async function loadHistory(minutes, clickedBtn) {
 
 function renderChart(data) {
   const container = document.getElementById('batteryChart');
+  const xAxis = document.getElementById('batteryXAxis');
   if (!data.length) {
     container.innerHTML = '<div style="color: var(--text-dim); font-size: 13px;">No data available</div>';
+    if (xAxis) xAxis.innerHTML = '';
     return;
   }
 
@@ -148,6 +150,19 @@ function renderChart(data) {
   }).join('');
 
   container.innerHTML = bars;
+
+  // X-axis labels: show first, middle, last timestamps
+  if (xAxis) {
+    const first = data[0];
+    const last = data[data.length - 1];
+    const mid = data[Math.floor(data.length / 2)];
+    const fmt = (d) => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    xAxis.innerHTML = `
+      <span>${fmt(first)}</span>
+      <span>${fmt(mid)}</span>
+      <span>${fmt(last)}</span>
+    `;
+  }
 }
 
 async function loadDrainEvents() {
