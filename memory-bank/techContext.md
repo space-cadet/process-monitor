@@ -1,146 +1,174 @@
-# Technical Context: MacOS Process Monitor
+# Technical Context: mac-process-monitor
 
 ## Technology Stack
 
 ### Core Language and Runtime
-- **Python 3.8+**: Chosen for cross-version compatibility, rich ecosystem, and development speed
-- **Standard Library**: Leveraging built-in modules to minimize dependencies
-- **Future Consideration**: Architecture designed to allow future Go or Rust implementation
+- **TypeScript 5.x**: Type-safe Node.js with ESM modules
+- **tsx**: TypeScript execution without pre-compilation
+- **Node.js 18+**: LTS runtime for async/await and ESM
 
 ### System Interaction
-- **psutil**: Cross-platform library for retrieving process and system utilization information
-- **subprocess**: Used for executing and processing shell commands when necessary
-- **PyObjC** (optional): For deeper MacOS integration when standard libraries are insufficient
+- **systeminformation**: Cross-platform system stats (battery, processes, CPU, memory)
+- **better-sqlite3**: Fast synchronous SQLite for time-series storage
+- **Node.js built-ins**: `process` for signals, `path`/`fs` for DB path resolution
+
+### Storage
+- **SQLite**: Time-series DB with three tables — `snapshots`, `process_samples`, `drain_events`
+- **better-sqlite3**: Chosen for synchronous, simple API (no async transaction overhead)
 
 ### Configuration
-- **PyYAML**: For YAML configuration file management
-- **argparse**: For command-line argument parsing
+- **Inline TypeScript config**: `MonitorConfig` interface passed to `Monitor` constructor
+- **Default values** in `Monitor.ts` and `main.ts` entry point
+- **Future**: JSON config file, CLI flags via `minimist` or `commander`
 
-### Logging
-- **logging**: Python's built-in logging facility
-- **logging.handlers.RotatingFileHandler**: For log rotation and management
+### Testing
+- **tsx direct execution**: Test scripts are runnable TypeScript files (`test-basic.ts`, `test-collector.ts`, `test-analyzer.ts`)
+- **No formal test framework yet** — validated via live systeminformation calls + fake data injection
 
-### User Interfaces
-- **CLI**: Command-line interface using argparse
-- **GUI** (future): 
-  - PyQt/PySide (primary consideration for desktop GUI)
-  - Tkinter (alternative, simpler option)
-- **Web Interface** (future):
-  - Flask/FastAPI for backend API
-  - HTML/CSS/JavaScript for frontend
-  - WebSockets for real-time updates
+### Alerting
+- **Planned**: OpenClaw message tool integration (T2)
+- **Planned**: Telegram bot via `node-telegram-bot-api` (fallback)
 
 ## Development Environment
 
 ### Required Tools
-- Python 3.8+ installed on MacOS
-- pip for package management
-- Virtual environment (venv or conda) for dependency isolation
+- Node.js 18+ with npm/pnpm
+- TypeScript compiler (`tsc` for build, `tsx` for dev)
+- macOS for battery/process APIs (systeminformation supports Linux/Windows too)
 
 ### Development Setup
 ```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+pnpm install
+npx tsx src/main.ts        # Run monitor
+npx tsx src/show-data.ts   # Show current system data
+npx tsx src/test-basic.ts  # Validate battery/process collection
 ```
-
-### Testing
-- **unittest**: Python's built-in testing framework
-- **pytest**: For more advanced testing capabilities
 
 ## Technical Constraints
 
 ### System Compatibility
-- **MacOS Versions**: Targeting MacOS 10.14 (Mojave) and newer
-- **Python Version**: Must work with Python 3.8+
+- **Primary target**: macOS 12+ (Monterey and newer)
+- **Cross-platform**: systeminformation works on Linux/Windows, but battery % accuracy varies
+- **Node.js**: Requires 18+ for modern ESM and top-level await
 
 ### Performance Requirements
-- Monitoring overhead must be less than 1% CPU usage
-- Memory footprint should be under 50MB
-- Log file growth rate must be manageable with rotation
+- Sampling overhead: <1% CPU at 30s intervals
+- DB writes: batched per sample (1 snapshot + up to 50 process rows)
+- Memory footprint: analyzer keeps only last ~11 samples (5-min window at 30s)
+- SQLite: WAL mode recommended for concurrent reads (dashboard T4)
 
 ### Permission Requirements
-- Requires user-level permissions for accessing process information
-- Some advanced features may require elevated permissions
+- User-level permissions sufficient for process listing (systeminformation)
+- No elevated permissions needed for battery/process monitoring
 
 ## Dependencies
 
 ### Core Dependencies
-- **psutil**: ^5.8.0 - Process and system utilities
-- **PyYAML**: ^6.0 - For YAML configuration
+- `systeminformation@^5.25.0` — Battery, processes, CPU, memory stats
+- `better-sqlite3@^12.0.0` — SQLite time-series storage
 
-### Optional Dependencies
-- **PyObjC**: ^7.3 - For deeper MacOS integration
-- **PyQt5/PySide6**: For GUI implementation (future)
-- **Flask/FastAPI**: For web API (future)
+### Dev Dependencies
+- `typescript@^5.7.0` — Type checking
+- `tsx@^4.19.0` — TypeScript execution
+- `@types/node@^22.0.0` — Node.js type definitions
 
-### Development Dependencies
-- **pytest**: ^7.0.0 - Testing framework
-- **black**: ^22.1.0 - Code formatting
-- **pylint**: ^2.12.2 - Static code analysis
+### Future Dependencies (T2-T4)
+- `express` or native `http` module — Dashboard server (T4)
+- `node-telegram-bot-api` or OpenClaw message tool — Alerts (T2)
+- `chart.js` or lightweight canvas library — Dashboard charts (T4)
 
 ## Deployment Strategy
 
 ### Installation Methods
-- Manual installation from source
-- pip installation (future)
-- Homebrew formula (potential future)
+- Clone + `pnpm install` (current)
+- `npm install -g` or local `npx` execution (future)
+- Homebrew formula (future, after Swift menubar T5)
 
 ### Packaging
-- setuptools for creating distributable packages
-- Requirements.txt for dependency management
+- `tsc` builds to `dist/` for distribution
+- `tsx` for development and testing
 
 ## File Structure
 ```
 mac-process-monitor/
-├── procmon/                # Core package
-│   ├── core/               # Core functionality (language-agnostic design)
-│   │   ├── collector.py    # Process data collection
-│   │   ├── analyzer.py     # Threshold analysis
-│   │   └── logger.py       # Logging system
-│   ├── config/             # Configuration management
-│   │   └── manager.py      # Config operations
-│   ├── interfaces/         # Interface implementations
-│   │   ├── cli.py          # Command-line interface
-│   │   ├── gui.py          # GUI interface (future)
-│   │   └── api.py          # Web API (future)
-│   └── utils/              # Utility functions
-├── bin/                    # Executable scripts
-│   └── procmon             # Command-line entry point
-├── config/                 # Configuration files
-│   └── default_config.yaml # Default configuration
-├── web/                    # Web interface files (future)
-│   ├── static/             # Static web assets 
-│   └── templates/          # HTML templates
-├── tests/                  # Test suite
-│   ├── test_collector.py
-│   ├── test_analyzer.py
-│   └── test_logger.py
-├── docs/                   # Additional documentation
-├── README.md
-├── setup.py
-└── requirements.txt
+├── src/
+│   ├── types/
+│   │   └── index.ts              # All TypeScript interfaces
+│   ├── core/
+│   │   ├── SystemCollector.ts    # Battery + process sampling
+│   │   ├── DrainAnalyzer.ts      # Sliding window drain detection
+│   │   └── Monitor.ts            # Orchestrator loop
+│   ├── storage/
+│   │   └── TimeSeriesDB.ts       # SQLite time-series storage
+│   ├── main.ts                   # Entry point
+│   ├── show-data.ts              # Live data display
+│   ├── test-basic.ts             # Battery/process validation
+│   ├── test-collector.ts         # Collector + DB integration
+│   └── test-analyzer.ts          # Drain detection with fake data
+├── memory-bank/                  # Project documentation
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
+
+## ESM Import Conventions
+- Source files use `.js` extensions in import paths (`import { Monitor } from './core/Monitor.js'`)
+- This is required for Node.js ESM resolution; `tsx` handles the translation at runtime
+- `tsc` compiles `.ts` → `.js`, so paths remain valid in `dist/`
+
+## Database Schema
+
+### snapshots
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `timestamp INTEGER NOT NULL`
+- `battery_percent REAL NOT NULL`
+- `is_charging INTEGER NOT NULL`
+- `cpu_total REAL`, `memory_total REAL`
+
+### process_samples
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `snapshot_id INTEGER NOT NULL` (FK → snapshots.id)
+- `pid INTEGER NOT NULL`, `name TEXT NOT NULL`
+- `cpu_percent REAL NOT NULL`, `memory_percent REAL NOT NULL`
+- `rss_mb REAL NOT NULL`, `cmdline TEXT`
+
+### drain_events
+- `id TEXT PRIMARY KEY`
+- `start_time`, `end_time INTEGER NOT NULL`
+- `start_percent`, `end_percent`, `drain_rate`, `duration_minutes REAL NOT NULL`
+- `was_charging INTEGER NOT NULL`, `top_processes_json TEXT NOT NULL`
+
+## Drain Detection Algorithm
+1. **Sample** battery + top-50 processes every `sampleIntervalSeconds` (default: 30s)
+2. **Store** in SQLite (`snapshots` + `process_samples`)
+3. **Analyze** sliding `windowMinutes` window (default: 5 min, ~11 samples)
+4. **Trigger** if: not charging, drop rate > `drainThreshold` (default: 1%/min), sustained for `minDuration` (default: 2 min), and cooldown expired (default: 10 min)
+5. **Correlate** — average CPU per PID across all samples in window, return top 5
+6. **Store event** in `drain_events` + alert (T2)
+
+## Known Quirks
+- **memRss**: `systeminformation` returns KB, not bytes. `rssMB = memRss / 1024`.
+- **currentLoad**: May return `undefined` on some systems. Fallback chain: `currentload` → `avgload` → `0`.
+- **timeRemaining**: Negative values indicate "calculating" — mapped to `null`.
+- **temperature**: Negative values indicate unavailable — mapped to `null`.
 
 ## Additional Notes
 
-### System APIs Used
-- The tool primarily uses psutil, which in turn uses low-level MacOS APIs
-- For obtaining process information: sysctl, proc_listpids, proc_pidinfo
-- For memory information: vm_statistics, task_info
-- For CPU usage: host_processor_info, task_thread_info
+### Python Legacy
+The project was originally planned in Python (psutil, PyYAML, Flask). T1 replaced this with TypeScript for:
+- Single-language stack (TypeScript for both monitor and web dashboard T4)
+- ESM module system
+- Better type safety for time-series data contracts
+- `systeminformation` provides richer battery data than `psutil`
 
-### Future Language Migration Considerations
-- Core functionality designed with language-agnostic principles
-- Simple data structures for easy translation to Go or Rust
-- Clear component interfaces to allow gradual replacement
-- Protocol-based communication between components
+### Language Migration Considerations
+- Core data structures (`SystemSnapshot`, `DrainEvent`, `ProcessSnapshot`) are simple interfaces — easy to port to Swift (T5)
+- SQLite DB format is language-agnostic — Swift version can read the same DB
+- Algorithm logic (sliding window, process aggregation) is self-contained in `DrainAnalyzer.ts`
 
 ### Interface Implementation Strategy
-- CLI implementation first for core functionality
-- GUI implementation with PyQt/PySide (most likely choice)
-- Web interface with Flask/FastAPI backend and JavaScript frontend
-- Shared core functionality across all interfaces
+- CLI test scripts first (current: `show-data.ts`, `test-*.ts`)
+- OpenClaw/Telegram alerts next (T2)
+- Per-process query CLI (T3)
+- Web dashboard with Express + Chart.js (T4)
+- Swift menubar app as final native integration (T5)

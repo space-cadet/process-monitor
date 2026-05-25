@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Process Monitor Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔋 Process Monitor</h1>
+      <div class="stats-bar" id="stats-bar">
+        <span>DB: <strong id="db-snapshots">--</strong> snapshots</span>
+        <span>Events: <strong id="db-events">--</strong></span>
+        <span>Last update: <strong id="last-update">--</strong></span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card wide">
+        <h2>CPU & Memory</h2>
+        <canvas id="cpu-chart"></canvas>
+      </div>
+
+      <div class="card wide">
+        <h2>Battery</h2>
+        <canvas id="battery-chart"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>Load, Swap, Temp</h2>
+        <canvas id="extras-chart"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>Disk & Network</h2>
+        <canvas id="io-chart"></canvas>
+      </div>
+
+      <div class="card wide">
+        <h2>Top Processes</h2>
+        <table id="process-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>PID</th>
+              <th>CPU %</th>
+              <th>User %</th>
+              <th>Sys %</th>
+              <th>Mem %</th>
+              <th>RSS (MB)</th>
+              <th>State</th>
+              <th>Nice</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card wide">
+        <h2>Drain Events</h2>
+        <table id="drain-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Drop</th>
+              <th>Rate</th>
+              <th>Duration</th>
+              <th>Top Process</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p id="no-drains" class="empty">No drain events recorded yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
