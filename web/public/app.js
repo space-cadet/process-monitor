@@ -180,8 +180,12 @@ function renderChart(data) {
     return;
   }
 
+  // Limit to ~60 bars max for visibility
+  const step = Math.ceil(data.length / 60);
+  const sampled = step > 1 ? data.filter((_, i) => i % step === 0) : data;
+
   const maxVal = 100;
-  const bars = data.map(d => {
+  const bars = sampled.map(d => {
     const percent = d.battery_percent ?? d.batteryPercent ?? 0;
     const height = (percent / maxVal) * 100;
     const time = new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -192,7 +196,7 @@ function renderChart(data) {
   }).join('');
 
   container.innerHTML = bars;
-  console.log(`[Chart] Rendered ${data.length} bars, heights: ${data.slice(0,3).map(d => ((d.battery_percent ?? d.batteryPercent ?? 0) / 100 * 100).toFixed(0) + '%').join(', ')}...`);
+  console.log(`[Chart] Rendered ${sampled.length} bars (sampled from ${data.length}), heights: ${sampled.slice(0,3).map(d => ((d.battery_percent ?? d.batteryPercent ?? 0) / 100 * 100).toFixed(0) + '%').join(', ')}...`);
 
   // X-axis labels: show first, middle, last timestamps
   if (xAxis) {

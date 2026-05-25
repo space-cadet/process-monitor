@@ -524,7 +524,9 @@ header {
 }
 
 .chart-bar {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 4px;
+  max-width: 12px;
   background: linear-gradient(to top, var(--accent-battery), rgba(34,211,238,0.3));
   border-radius: 4px 4px 0 0;
   min-height: 4px;
