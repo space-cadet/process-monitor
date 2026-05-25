@@ -382,6 +382,13 @@ header {
   letter-spacing: 0.05em;
   background: var(--surface-raised);
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.process-table th:hover {
+  color: var(--text-bright);
 }
 
 .process-table th:last-child,

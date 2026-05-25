@@ -65,20 +65,16 @@
     <div class="main-grid">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title" style="--panel-accent: var(--accent-cpu);">Top Processes by CPU</div>
-          <div class="panel-actions">
-            <button class="panel-btn active" onclick="sortProcesses('cpu', this)">CPU ▼</button>
-            <button class="panel-btn" onclick="sortProcesses('mem', this)">Mem ▲</button>
-          </div>
+          <div class="panel-title" style="--panel-accent: var(--accent-cpu);">Top Processes</div>
         </div>
         <div class="table-wrapper">
           <table class="process-table">
             <thead>
               <tr>
-                <th>Process</th>
-                <th>PID</th>
-                <th>CPU</th>
-                <th>Memory</th>
+                <th onclick="sortByColumn('name')" style="cursor: pointer;">Process</th>
+                <th onclick="sortByColumn('pid')" style="cursor: pointer;">PID</th>
+                <th onclick="sortByColumn('cpu')" style="cursor: pointer;">CPU</th>
+                <th onclick="sortByColumn('memory')" style="cursor: pointer;">Memory</th>
               </tr>
             </thead>
             <tbody id="processTable">

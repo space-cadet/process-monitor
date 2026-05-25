@@ -1,6 +1,6 @@
 const API_BASE = '';
 let currentProcesses = [];
-let currentSort = 'cpu';
+let currentSort = { column: 'cpu', direction: 'desc' };
 let refreshInterval = null;
 
 async function fetchData() {
@@ -75,16 +75,19 @@ function updateDashboard(data) {
 function renderProcesses() {
   const tbody = document.getElementById('processTable');
   const sorted = [...currentProcesses].sort((a, b) => {
-    if (currentSort === 'cpu') return b.cpuPercent - a.cpuPercent;
-    return b.memoryPercent - a.memoryPercent;
+    let valA, valB;
+    switch (currentSort.column) {
+      case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
+      case 'pid': valA = a.pid; valB = b.pid; break;
+      case 'cpu': valA = a.cpuPercent; valB = b.cpuPercent; break;
+      case 'memory': valA = a.memoryPercent; valB = b.memoryPercent; break;
+      default: valA = a.cpuPercent; valB = b.cpuPercent;
+    }
+    if (currentSort.direction === 'asc') return valA > valB ? 1 : -1;
+    return valA < valB ? 1 : -1;
   }).slice(0, 10);
 
   tbody.innerHTML = sorted.map(p => {
-    const isCpuSort = currentSort === 'cpu';
-    const value = isCpuSort ? p.cpuPercent : p.memoryPercent;
-    const label = isCpuSort ? 'CPU' : 'Mem';
-    const barClass = value > 50 ? 'high' : '';
-    
     return `
       <tr>
         <td>
@@ -96,20 +99,52 @@ function renderProcesses() {
         <td>${p.pid}</td>
         <td>
           <div class="cpu-bar">
-            <span>${value.toFixed(1)}%</span>
+            <span>${p.cpuPercent.toFixed(1)}%</span>
             <div class="cpu-bar-track">
-              <div class="cpu-bar-fill ${barClass}" style="width: ${Math.min(value, 100)}%;"></div>
+              <div class="cpu-bar-fill ${p.cpuPercent > 50 ? 'high' : ''}" style="width: ${Math.min(p.cpuPercent, 100)}%;"></div>
             </div>
           </div>
         </td>
-        <td>${p.rssMB.toFixed(0)} MB</td>
+        <td>
+          <div class="cpu-bar">
+            <span>${p.memoryPercent.toFixed(1)}%</span>
+            <div class="cpu-bar-track">
+              <div class="cpu-bar-fill ${p.memoryPercent > 50 ? 'high' : ''}" style="width: ${Math.min(p.memoryPercent, 100)}%;"></div>
+            </div>
+          </div>
+        </td>
       </tr>
     `;
   }).join('');
+  
+  updateSortHeaders();
+}
+
+function updateSortHeaders() {
+  const headers = document.querySelectorAll('.process-table th');
+  const sortIndicator = (column) => {
+    if (currentSort.column !== column) return '';
+    return currentSort.direction === 'asc' ? ' ▲' : ' ▼';
+  };
+  
+  headers[0].innerHTML = `Process${sortIndicator('name')}`;
+  headers[1].innerHTML = `PID${sortIndicator('pid')}`;
+  headers[2].innerHTML = `CPU${sortIndicator('cpu')}`;
+  headers[3].innerHTML = `Memory${sortIndicator('memory')}`;
+}
+
+function sortByColumn(column) {
+  if (currentSort.column === column) {
+    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.column = column;
+    currentSort.direction = 'desc';
+  }
+  renderProcesses();
 }
 
 function sortProcesses(by, clickedBtn) {
-  currentSort = by;
+  currentSort = { column: by, direction: 'desc' };
   renderProcesses();
   
   // Update button states
