@@ -107,7 +107,7 @@ function renderProcesses() {
         </td>
         <td>
           <div class="cpu-bar">
-            <span>${p.memoryPercent.toFixed(1)}%</span>
+            <span>${p.rssMB.toFixed(0)} MB</span>
             <div class="cpu-bar-track">
               <div class="cpu-bar-fill ${p.memoryPercent > 50 ? 'high' : ''}" style="width: ${Math.min(p.memoryPercent, 100)}%;"></div>
             </div>
