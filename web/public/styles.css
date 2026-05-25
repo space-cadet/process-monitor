@@ -531,6 +531,7 @@ header {
   max-height: 100%;
   position: relative;
   transition: height 0.5s ease;
+  width: 100%;
 }
 
 .chart-bar::after {

@@ -192,6 +192,7 @@ function renderChart(data) {
   }).join('');
 
   container.innerHTML = bars;
+  console.log(`[Chart] Rendered ${data.length} bars, heights: ${data.slice(0,3).map(d => ((d.battery_percent ?? d.batteryPercent ?? 0) / 100 * 100).toFixed(0) + '%').join(', ')}...`);
 
   // X-axis labels: show first, middle, last timestamps
   if (xAxis) {
