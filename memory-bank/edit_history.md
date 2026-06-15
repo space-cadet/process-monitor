@@ -1,6 +1,52 @@
 # Edit History
 
-*Last Updated: 2026-06-10 01:15 IST*
+*Last Updated: 2026-06-15 07:45 IST*
+
+---
+
+## 2026-06-15
+
+#### 07:45 IST - T8: LaunchDaemon Installation + Git History Recovery
+
+**T8: LaunchDaemon Installation for Auto-Start**
+- Created `ai.openclaw.procmon.monitor.plist` — LaunchDaemon for core monitor (runs as sage, PID 53211)
+- Created `ai.openclaw.procmon.dashboard.plist` — LaunchDaemon for web dashboard (runs as sage, PID 57453, port 3456)
+- Installed at `/Library/LaunchDaemons/` with root:wheel ownership and 644 permissions
+- Resolved port conflict: old `com.mac-process-monitor.dashboard.plist` was holding port 3456, removed it
+- Verified both services running via `launchctl list`
+- Dashboard responding with HTTP 200 on http://localhost:3456
+- Auto-start on boot confirmed
+
+**GitHub Sync: T6/T7 Commit**
+- Discovered workspace copy had no `.git` folder (not a git repo)
+- Used `git clone --depth 1` (mistake) — created shallow clone with only 1 commit
+- Temporarily replaced workspace directory with shallow copy
+- User corrected: canonical copy at `/Users/deepak/code/mac-process-monitor` has full 26-commit history
+- Re-cloned with full history, merged T6/T7 features from workspace backup
+- Committed as `f7e295a`: "feat: Add spike detection, battery impact analysis, CLI query tool, and rebuilt dashboard"
+- Pushed to GitHub: `1a7c313..f7e295a`
+- Remote now has 27 commits (26 original + 1 new)
+- User's canonical copy needs `git pull` to sync
+
+**Feature Audit**
+- Generated `FEATURE_AUDIT_2026-06-15.md` (untracked, not in git)
+- Documented: T2 (alerts) still pending, T5 (Swift) still pending
+- Documented: dead code (`src/web/server.ts`, `web/public/`) should be cleaned up
+- Documented: missing CLI queries (`--drain-event`, `--battery-events`)
+- Documented: score decay not implemented despite config existing
+
+**Cleanup**
+- Removed backup folder: `mac-process-monitor-backup-20260615-065933`
+- Removed shallow clone folder: `mac-process-monitor-shallow-1781487571`
+- Workspace copy now clean with full git history
+
+**Memory Bank Updates**
+- Updated `tasks.md` — T8 marked complete, added git incident note
+- Updated `activeContext.md` — Updated with T8 completion and git incident
+- Updated `progress.md` — Updated with T8 completion, git incident, timeline
+- Created `tasks/T8.md` — New file documenting LaunchDaemon installation
+- Updated `session_cache.md` — Session completion notes
+- Updated `edit_history.md` — This edit chunk
 
 ---
 

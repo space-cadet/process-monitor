@@ -1,8 +1,8 @@
 # Progress Report: mac-process-monitor
 
-*Last Updated: 2026-06-10 01:15 IST*
+*Last Updated: 2026-06-15 07:45 IST*
 
-## Project Status: T1, T3, T4, T6, T7 Complete; T2, T5 Pending
+## Project Status: T1, T3, T4, T6, T7, T8 Complete; T2, T5 Pending
 
 ### What Works
 
@@ -38,6 +38,12 @@
   - Dashboard: Battery impact ranking bars with clickable process links
   - CLI: `npx tsx src/query.ts --battery --limit 10`
 
+- **T8 — LaunchDaemon Installation**: ✅ COMPLETE (2026-06-15)
+  - `ai.openclaw.procmon.monitor` → PID 53211, running via LaunchDaemon
+  - `ai.openclaw.procmon.dashboard` → PID 57453, running via LaunchDaemon
+  - Auto-start on boot confirmed
+  - Old conflicting plist (`com.mac-process-monitor.dashboard`) removed to resolve port 3456 conflict
+
 ### What's Left to Build
 
 | Task | Status | Description |
@@ -51,6 +57,8 @@
 - ~~`productContext.md` was generic~~ — **FIXED** 2026-05-19
 - ~~Dashboard frontend regression~~ — **FIXED** 2026-06-10 (advanced features restored)
 - ~~Process modal `[object Object]` bug~~ — **FIXED** 2026-06-10 (click handler passed object instead of name)
+- ~~GitHub repo out of sync~~ — **FIXED** 2026-06-15 (T6/T7 committed, 27 commits total)
+- ~~LaunchDaemon port conflict~~ — **FIXED** 2026-06-15 (old conflicting plist removed)
 
 ### Known Issues
 
@@ -69,6 +77,9 @@
 | 2026-06-09 | T6: Process spike detection with baseline tracking | ✅ Complete |
 | 2026-06-09 | T7: Battery impact correlation with scoring | ✅ Complete |
 | 2026-06-10 | T4: Dashboard rebuilt with full features + T3 queries | ✅ Complete |
+| 2026-06-13 | T8: LaunchDaemon plist files created (pending manual sudo) | ✅ Complete |
+| 2026-06-15 | T8: LaunchDaemons installed and running | ✅ Complete |
+| 2026-06-15 | T6/T7 committed to GitHub, full history restored | ✅ Complete |
 | *Next* | T2: OpenClaw/Telegram alerting | ⬜ Pending |
 | *Future* | T5: Swift menubar | ⬜ Pending |
 
@@ -79,8 +90,8 @@
 ### Next Milestone Goals
 
 - Wire `Monitor.sendAlert()` to actually dispatch messages via OpenClaw message tool (T2)
-- Restart monitor core for continuous sampling (stopped after test run)
 - Capture dashboard screenshots for README
+- User to run `git pull` in `/Users/deepak/code/mac-process-monitor` to sync canonical copy
 
 ### Notes
 
@@ -88,4 +99,6 @@
 - Original `procmon/` Python package is vestigial (not imported by TS code)
 - `requirements.txt` and `procmon/` can be removed once TS stack is fully validated
 - Memory bank uses BOTH workflows: DB-native (`database/`) + text-based (`tasks.md`, `T*.md`, etc.)
-- GitHub repo made public: https://github.com/space-cadet/mac-process-monitor
+- GitHub repo: https://github.com/space-cadet/mac-process-monitor (public, 27 commits)
+- **Workspace vs. Canonical**: User's canonical copy is `/Users/deepak/code/mac-process-monitor`. Workspace copy is for Sage's working/transient use. I should check the canonical copy first when investigating alignment.
+- **Git incident lesson**: Never use `git clone --depth 1` for alignment checks. The workspace copy had no `.git` folder when I checked, but the user's canonical copy was the real repo.
