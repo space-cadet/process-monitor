@@ -137,6 +137,7 @@ export interface BatteryImpactConfig {
   scoreDecayHours: number;          // How often to decay old scores (optional)
 }
 
+export interface AlertConfig {
   enabled: boolean;
   telegramBotToken?: string;
   telegramChatId?: string;
@@ -150,6 +151,11 @@ export interface MonitorConfig {
   sampleIntervalSeconds: number;   // how often to sample (default: 30)
   dbPath: string;
   retentionDays: number;
+  retentionSizeMB: number;         // max DB size before cleanup (default: 400)
+  logProcesses: boolean;           // store process samples
+  logBattery: boolean;             // store battery data
+  logSpikes: boolean;              // detect and store spikes
+  logBatteryImpact: boolean;       // track battery impact per process
   alert: AlertConfig;
   spike: SpikeConfig;
   batteryImpact: BatteryImpactConfig;

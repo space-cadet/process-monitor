@@ -672,6 +672,127 @@ function exportCSV() {
     .catch(err => alert('Export failed: ' + err.message));
 }
 
+// Settings
+async function loadSettings() {
+  try {
+    const res = await fetch(`${API_BASE}/api/db-stats`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    document.getElementById('settingsDbSize').textContent = `${data.dbSizeMB} MB`;
+    document.getElementById('settingsSnapshots').textContent = data.totalSnapshots.toLocaleString();
+    document.getElementById('settingsOldest').textContent = data.oldestSnapshot
+      ? new Date(data.oldestSnapshot).toLocaleDateString()
+      : 'N/A';
+  } catch (err) {
+    console.error('Settings load error:', err);
+  }
+}
+
+async function runCleanup() {
+  const btn = document.getElementById('cleanupBtn');
+  const result = document.getElementById('cleanupResult');
+  const days = parseInt(document.getElementById('retentionDays').value) || 30;
+
+  btn.disabled = true;
+  btn.textContent = 'Cleaning...';
+  result.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/cleanup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ retentionDays: days }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      result.className = 'settings-result';
+      result.textContent = `✅ Cleaned! Freed ${data.freedMB} MB. Remaining: ${data.remainingSnapshots} snapshots (${data.remainingMB} MB)`;
+      loadSettings();
+      loadDbSize();
+    } else {
+      throw new Error(data.error || 'Cleanup failed');
+    }
+  } catch (err) {
+    result.className = 'settings-result error';
+    result.textContent = `❌ Error: ${err.message}`;
+  } finally {
+    result.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '🗑 Clean Old Data';
+  }
+}
+
+function saveRefreshInterval() {
+  const seconds = parseInt(document.getElementById('refreshIntervalInput').value) || 5;
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    fetchData();
+    loadDrainEvents();
+    loadDbSize();
+    loadServerInfo();
+  }, seconds * 1000);
+  alert(`Refresh interval set to ${seconds} seconds`);
+}
+
+async function loadMonitorConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/api/config`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const config = await res.json();
+
+    // Populate fields
+    document.getElementById('retentionDays').value = config.retentionDays || 30;
+    document.getElementById('retentionSizeMB').value = config.retentionSizeMB || 400;
+    document.getElementById('sampleInterval').value = config.sampleIntervalSeconds || 30;
+    document.getElementById('logBattery').checked = config.logBattery !== false;
+    document.getElementById('logProcesses').checked = config.logProcesses !== false;
+    document.getElementById('logSpikes').checked = config.logSpikes !== false;
+    document.getElementById('logBatteryImpact').checked = config.logBatteryImpact !== false;
+  } catch (err) {
+    console.error('Config load error:', err);
+  }
+}
+
+async function saveMonitorConfig() {
+  const btn = document.querySelector('#settingsPanel .panel-btn.primary');
+  const originalText = btn.textContent;
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  try {
+    const config = {
+      retentionDays: parseInt(document.getElementById('retentionDays').value) || 30,
+      retentionSizeMB: parseInt(document.getElementById('retentionSizeMB').value) || 400,
+      sampleIntervalSeconds: parseInt(document.getElementById('sampleInterval').value) || 30,
+      logBattery: document.getElementById('logBattery').checked,
+      logProcesses: document.getElementById('logProcesses').checked,
+      logSpikes: document.getElementById('logSpikes').checked,
+      logBatteryImpact: document.getElementById('logBatteryImpact').checked,
+    };
+
+    const res = await fetch(`${API_BASE}/api/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('restartNotice').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('restartNotice').style.display = 'none';
+      }, 30000);
+    } else {
+      throw new Error(data.error || 'Save failed');
+    }
+  } catch (err) {
+    alert('Failed to save config: ' + err.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
 // Initialize
 function init() {
   fetchData();
@@ -680,6 +801,8 @@ function init() {
   loadProfiles();
   loadDbSize();
   loadServerInfo();
+  loadSettings();
+  loadMonitorConfig();
 
   refreshInterval = setInterval(() => {
     fetchData();

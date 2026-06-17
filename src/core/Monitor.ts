@@ -2,8 +2,11 @@ import { SystemCollector } from './SystemCollector.js';
 import { DrainAnalyzer } from './DrainAnalyzer.js';
 import { SpikeDetector } from './SpikeDetector.js';
 import { BatteryImpactAnalyzer } from './BatteryImpactAnalyzer.js';
+import { AlertSender } from './AlertSender.js';
 import { TimeSeriesDB } from '../storage/TimeSeriesDB.js';
-import { MonitorConfig, AlertConfig, DrainEvent, ProcessSpike, BatteryImpactEvent } from '../types/index.js';
+import { MonitorConfig, DrainEvent, ProcessSpike, BatteryImpactEvent } from '../types/index.js';
+import { loadConfig } from '../config/ConfigManager.js';
+import { statSync } from 'fs';
 
 /**
  * Main monitor orchestrator.
@@ -14,43 +17,22 @@ export class Monitor {
   private analyzer: DrainAnalyzer;
   private spikeDetector: SpikeDetector;
   private batteryImpactAnalyzer: BatteryImpactAnalyzer;
+  private alertSender: AlertSender;
   private db: TimeSeriesDB;
   private config: MonitorConfig;
   private timer: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private tickCount = 0;
 
   constructor(config: Partial<MonitorConfig> = {}) {
+    // Load from file first, then override with passed config
+    const fileConfig = loadConfig();
     this.config = {
-      sampleIntervalSeconds: 30,
-      dbPath: '~/.procmon/monitor.db',
-      retentionDays: 30,
-      alert: {
-        enabled: true,
-        drainThreshold: 1.0,    // % per minute
-        minDuration: 2,           // minutes
-        cooldownMinutes: 10,
-      },
-      spike: {
-        enabled: true,
-        thresholds: {
-          cpuPercent: 50,          // Absolute threshold: 50% CPU
-          memoryPercent: 20,       // Absolute threshold: 20% memory
-          cpuMultiplier: 3,        // 3x above baseline
-          memoryMultiplier: 3,     // 3x above baseline
-          minBaselineSamples: 5,   // Need 5 samples before multiplier kicks in
-          cooldownSeconds: 60,     // 1 minute between spikes for same process
-        },
-        watchedProcesses: [],
-        ignoredProcesses: ['kernel_task', 'WindowServer', 'mds', 'mdworker'],
-      },
-      batteryImpact: {
-        enabled: true,
-        analysisWindowMinutes: 5,
-        minBatteryDropPercent: 2.0,
-        minDurationMinutes: 2,
-        scoreDecayHours: 168,      // 7 days (optional, not yet implemented)
-      },
+      ...fileConfig,
       ...config,
+      alert: { ...fileConfig.alert, ...config.alert },
+      spike: { ...fileConfig.spike, ...config.spike },
+      batteryImpact: { ...fileConfig.batteryImpact, ...config.batteryImpact },
     };
 
     this.collector = new SystemCollector();
@@ -68,6 +50,7 @@ export class Monitor {
       this.config.batteryImpact.minDurationMinutes
     );
     this.db = new TimeSeriesDB(this.config.dbPath);
+    this.alertSender = new AlertSender(this.config.alert);
   }
 
   async start(): Promise<void> {
@@ -76,9 +59,9 @@ export class Monitor {
 
     console.log(`[Monitor] Starting — sampling every ${this.config.sampleIntervalSeconds}s`);
     console.log(`[Monitor] DB: ${this.config.dbPath}`);
+    console.log(`[Monitor] Retention: ${this.config.retentionDays} days or ${this.config.retentionSizeMB}MB`);
+    console.log(`[Monitor] Logging: battery=${this.config.logBattery}, processes=${this.config.logProcesses}, spikes=${this.config.logSpikes}, impact=${this.config.logBatteryImpact}`);
     console.log(`[Monitor] Alert threshold: ${this.config.alert.drainThreshold}%/min`);
-    console.log(`[Monitor] Spike detection: ${this.config.spike.enabled ? 'ON' : 'OFF'}`);
-    console.log(`[Monitor] Battery impact tracking: ${this.config.batteryImpact.enabled ? 'ON' : 'OFF'}`);
 
     // Initial sample
     await this.tick();
@@ -102,11 +85,15 @@ export class Monitor {
 
   private async tick(): Promise<void> {
     try {
+      this.tickCount++;
       console.log(`[Monitor] Tick at ${new Date().toISOString()}`);
       const snapshot = await this.collector.getSystemSnapshot();
       
-      // Store in DB
-      const snapshotId = this.db.insertSnapshot(snapshot);
+      // Store in DB (conditionally)
+      let snapshotId: number | null = null;
+      if (this.config.logBattery) {
+        snapshotId = this.db.insertSnapshot(snapshot, this.config.logProcesses);
+      }
       
       // Feed to analyzer
       this.analyzer.addSample(snapshot);
@@ -123,7 +110,7 @@ export class Monitor {
       }
 
       // Spike detection
-      if (this.config.spike.enabled) {
+      if (this.config.logSpikes && this.config.spike.enabled && snapshotId !== null) {
         const spikes = this.spikeDetector.detectSpikes(snapshot.processes, snapshotId);
         for (const spike of spikes) {
           this.handleSpike(spike);
@@ -131,20 +118,40 @@ export class Monitor {
       }
 
       // Battery impact analysis
-      if (this.config.batteryImpact.enabled) {
+      if (this.config.logBatteryImpact && this.config.batteryImpact.enabled) {
         const impactEvent = this.batteryImpactAnalyzer.addSample(snapshot);
         if (impactEvent) {
           this.handleBatteryImpactEvent(impactEvent);
         }
       }
       
-      // Periodic cleanup
-      if (Math.random() < 0.01) {  // ~1% chance per tick
-        this.db.cleanupOldSamples(this.config.retentionDays);
+      // Periodic cleanup (every 100 ticks ≈ every 50 min at 30s interval)
+      if (this.tickCount % 100 === 0) {
+        this.runCleanup();
       }
       
     } catch (err) {
       console.error('[Monitor] Tick error:', err);
+    }
+  }
+
+  private runCleanup(): void {
+    try {
+      const stats = this.db.getStats();
+      const sizeMB = stats.dbSizeBytes / (1024 * 1024);
+      const ageTriggered = stats.oldestSnapshot !== null && 
+        (Date.now() - stats.oldestSnapshot) > this.config.retentionDays * 86400000;
+      const sizeTriggered = sizeMB > this.config.retentionSizeMB;
+
+      if (ageTriggered || sizeTriggered) {
+        console.log(`[Monitor] Auto-cleanup triggered: ${ageTriggered ? 'age' : ''} ${sizeTriggered ? 'size' : ''} (${sizeMB.toFixed(1)}MB)`);
+        this.db.cleanupOldSamples(this.config.retentionDays);
+        const afterStats = this.db.getStats();
+        const freedMB = (stats.dbSizeBytes - afterStats.dbSizeBytes) / (1024 * 1024);
+        console.log(`[Monitor] Cleanup complete. Freed ${freedMB.toFixed(1)}MB. Now ${(afterStats.dbSizeBytes / (1024 * 1024)).toFixed(1)}MB`);
+      }
+    } catch (err) {
+      console.error('[Monitor] Cleanup error:', err);
     }
   }
 
@@ -158,12 +165,12 @@ export class Monitor {
     }
     console.log();
 
-    // Store event
     this.db.insertDrainEvent(event);
 
-    // TODO: Send Telegram/OpenClaw alert
     if (this.config.alert.enabled) {
-      this.sendAlert(event);
+      this.alertSender.sendDrainAlert(event).catch(err =>
+        console.error('[Monitor] Drain alert failed:', err)
+      );
     }
   }
 
@@ -174,6 +181,10 @@ export class Monitor {
     console.log();
 
     this.db.insertProcessSpike(spike);
+
+    this.alertSender.sendSpikeAlert(spike).catch(err =>
+      console.error('[Monitor] Spike alert failed:', err)
+    );
   }
 
   private handleBatteryImpactEvent(event: BatteryImpactEvent): void {
@@ -186,30 +197,10 @@ export class Monitor {
     console.log();
 
     this.db.insertBatteryImpactEvent(event);
-  }
 
-  private async sendAlert(event: DrainEvent): Promise<void> {
-    const message = this.formatAlertMessage(event);
-    console.log('[Alert] Drain event detected:');
-    console.log(message);
-
-    // TODO: Implement actual Telegram/OpenClaw dispatch
-    // For now, log to console. Override this method or pass a handler
-    // to Monitor constructor for real alerting.
-  }
-
-  private formatAlertMessage(event: DrainEvent): string {
-    const lines = [
-      `⚠️ RAPID BATTERY DRAIN DETECTED`,
-      ``,
-      `Battery: ${event.startPercent}% → ${event.endPercent}%`,
-      `Rate: ${event.drainRate.toFixed(2)}% per minute`,
-      `Duration: ${event.durationMinutes.toFixed(1)} minutes`,
-      ``,
-      `Top CPU processes during drain:`,
-      ...event.topProcesses.map(p => `  • ${p.name} (PID ${p.pid}): ${p.cpuPercent.toFixed(1)}% CPU`),
-    ];
-    return lines.join('\n');
+    this.alertSender.sendBatteryImpactAlert(event).catch(err =>
+      console.error('[Monitor] Battery impact alert failed:', err)
+    );
   }
 
   getStats() {
@@ -220,6 +211,7 @@ export class Monitor {
       db: this.db.getStats(),
       spikeBaselines: this.spikeDetector.getBaselineStats().size,
       batteryDrainActive: this.batteryImpactAnalyzer.getCurrentDrain() !== null,
+      tickCount: this.tickCount,
     };
   }
 }

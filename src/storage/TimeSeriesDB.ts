@@ -190,7 +190,7 @@ export class TimeSeriesDB {
     `);
   }
 
-  insertSnapshot(snapshot: SystemSnapshot): number {
+  insertSnapshot(snapshot: SystemSnapshot, includeProcesses: boolean = true): number {
     const snapStmt = this.db.prepare(`
       INSERT INTO snapshots (
         timestamp, battery_percent, is_charging,
@@ -227,25 +227,27 @@ export class TimeSeriesDB {
     );
     const snapshotId = result.lastInsertRowid as number;
 
-    // Insert processes
-    const procStmt = this.db.prepare(`
-      INSERT INTO process_samples (
-        snapshot_id, pid, name, cpu_percent, cpu_user_percent, cpu_system_percent,
-        memory_percent, rss_mb, nice, state, cmdline
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    const insertProc = this.db.transaction((processes) => {
-      for (const proc of processes) {
-        procStmt.run(
-          snapshotId, proc.pid, proc.name,
-          proc.cpuPercent, proc.cpuUserPercent, proc.cpuSystemPercent,
-          proc.memoryPercent, proc.rssMB, proc.nice, proc.state, proc.cmdline
-        );
-      }
-    });
-    insertProc(snapshot.processes);
+    if (includeProcesses) {
+      // Insert processes
+      const procStmt = this.db.prepare(`
+        INSERT INTO process_samples (
+          snapshot_id, pid, name, cpu_percent, cpu_user_percent, cpu_system_percent,
+          memory_percent, rss_mb, nice, state, cmdline
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      const insertProc = this.db.transaction((processes) => {
+        for (const proc of processes) {
+          procStmt.run(
+            snapshotId, proc.pid, proc.name,
+            proc.cpuPercent, proc.cpuUserPercent, proc.cpuSystemPercent,
+            proc.memoryPercent, proc.rssMB, proc.nice, proc.state, proc.cmdline
+          );
+        }
+      });
+      insertProc(snapshot.processes);
+    }
 
     return snapshotId;
   }

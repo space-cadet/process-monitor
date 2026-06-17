@@ -1,5 +1,6 @@
 import { TimeSeriesDB } from '../storage/TimeSeriesDB.js';
 import { SystemCollector } from '../core/SystemCollector.js';
+import { loadConfig, saveConfig } from '../config/ConfigManager.js';
 import { createServer } from 'http';
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
@@ -159,6 +160,89 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify({ success: true }));
         return;
       }
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/db-stats') {
+    try {
+      const stats = db.getStats();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        totalSnapshots: stats.totalSnapshots,
+        totalEvents: stats.totalEvents,
+        oldestSnapshot: stats.oldestSnapshot,
+        dbSizeBytes: stats.dbSizeBytes,
+        dbSizeMB: (stats.dbSizeBytes / (1024 * 1024)).toFixed(2),
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/cleanup' && req.method === 'POST') {
+    try {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const { retentionDays = 30 } = JSON.parse(body || '{}');
+          const days = typeof retentionDays === 'number' ? retentionDays : parseInt(retentionDays) || 30;
+          const beforeBytes = db.getStats().dbSizeBytes;
+          db.cleanupOldSamples(days);
+          const afterStats = db.getStats();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            retentionDays,
+            freedMB: ((beforeBytes - afterStats.dbSizeBytes) / (1024 * 1024)).toFixed(2),
+            remainingSnapshots: afterStats.totalSnapshots,
+            remainingMB: (afterStats.dbSizeBytes / (1024 * 1024)).toFixed(2),
+          }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid request' }));
+        }
+      });
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/config' && req.method === 'GET') {
+    try {
+      const config = loadConfig();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(config));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/config' && req.method === 'POST') {
+    try {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const updates = JSON.parse(body);
+          saveConfig(updates);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Config saved. Restart monitor to apply changes.' }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));
