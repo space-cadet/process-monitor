@@ -15,9 +15,9 @@ export const DEFAULT_CONFIG: MonitorConfig = {
   logBatteryImpact: true,
   alert: {
     enabled: true,
-    drainThreshold: 1.0,
-    minDuration: 2,
-    cooldownMinutes: 10,
+    drainThreshold: 0.5,
+    minDuration: 1,
+    cooldownMinutes: 5,
   },
   spike: {
     enabled: true,

@@ -79,6 +79,18 @@
           </div>
           <div class="kpi-detail" id="statusDetail">--</div>
         </div>
+
+        <div class="kpi-card disk">
+          <div class="kpi-label">Disk</div>
+          <div class="kpi-value" id="diskValue">--<span>%</span></div>
+          <div class="kpi-detail" id="diskDetail">--</div>
+        </div>
+
+        <div class="kpi-card network">
+          <div class="kpi-label">Network</div>
+          <div class="kpi-value" id="netValue" style="font-size: 24px;">--</div>
+          <div class="kpi-detail" id="netDetail">--</div>
+        </div>
       </div>
 
       <div class="main-grid">
@@ -110,6 +122,8 @@
               <button class="chart-tab active" data-tab="battery" onclick="switchChartTab('battery')">Battery</button>
               <button class="chart-tab" data-tab="cpu" onclick="switchChartTab('cpu')">CPU</button>
               <button class="chart-tab" data-tab="memory" onclick="switchChartTab('memory')">Memory</button>
+              <button class="chart-tab" data-tab="disk" onclick="switchChartTab('disk')">Disk</button>
+              <button class="chart-tab" data-tab="network" onclick="switchChartTab('network')">Network</button>
             </div>
             <div class="panel-actions">
               <button class="panel-btn active" onclick="loadHistory(60, this)">1h</button>
@@ -237,6 +251,20 @@
                   <div class="preset-desc">Processes during drain events</div>
                 </div>
               </button>
+              <button class="preset-btn" onclick="runPresetQuery('diskTrend')">
+                <span class="preset-icon">💾</span>
+                <div class="preset-info">
+                  <div class="preset-name">Disk Usage Trend</div>
+                  <div class="preset-desc">Daily disk usage percentage</div>
+                </div>
+              </button>
+              <button class="preset-btn" onclick="runPresetQuery('networkTrend')">
+                <span class="preset-icon">🌐</span>
+                <div class="preset-info">
+                  <div class="preset-name">Network Activity Trend</div>
+                  <div class="preset-desc">Daily network RX/TX volume</div>
+                </div>
+              </button>
               <button class="preset-btn" onclick="runPresetQuery('idleVsActive')">
                 <span class="preset-icon">🌙</span>
                 <div class="preset-info">
@@ -345,6 +373,25 @@
                 <span>Track battery impact per process</span>
               </label>
             </div>
+          </div>
+
+          <div class="settings-section">
+            <h4>Drain Detection</h4>
+            <div class="settings-row">
+              <div class="settings-input-group">
+                <label for="drainThreshold">Drain threshold (%/min)</label>
+                <input type="number" id="drainThreshold" value="0.5" min="0.1" max="10" step="0.1">
+              </div>
+              <div class="settings-input-group">
+                <label for="minDuration">Min duration (min)</label>
+                <input type="number" id="minDuration" value="1" min="1" max="30">
+              </div>
+              <div class="settings-input-group">
+                <label for="cooldownMinutes">Cooldown (min)</label>
+                <input type="number" id="cooldownMinutes" value="5" min="1" max="120">
+              </div>
+            </div>
+            <div class="settings-hint">Lower threshold = more sensitive drain detection. Shorter duration = catches brief drains. Shorter cooldown = more frequent alerts.</div>
           </div>
 
           <div class="settings-section">

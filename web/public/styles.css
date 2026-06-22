@@ -15,6 +15,10 @@
   --accent-drain: #f43f5e;
   --accent-drain-dim: rgba(244,63,94,0.1);
   --accent-ok: #10b981;
+  --accent-disk: #8b5cf6;
+  --accent-disk-dim: rgba(139,92,246,0.1);
+  --accent-network: #06b6d4;
+  --accent-network-dim: rgba(6,182,212,0.1);
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
@@ -23,6 +27,20 @@
 .chart-tabs {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .chart-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .chart-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 }
 
 .chart-tab {
@@ -59,6 +77,18 @@
   background: var(--accent-mem-dim);
   color: var(--accent-mem);
   border-color: rgba(167,139,250,0.3);
+}
+
+.chart-tab[data-tab="disk"].active {
+  background: var(--accent-disk-dim);
+  color: var(--accent-disk);
+  border-color: rgba(139,92,246,0.3);
+}
+
+.chart-tab[data-tab="network"].active {
+  background: var(--accent-network-dim);
+  color: var(--accent-network);
+  border-color: rgba(6,182,212,0.3);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -220,6 +250,8 @@ header {
 .kpi-card.cpu { --accent-color: var(--accent-cpu); }
 .kpi-card.memory { --accent-color: var(--accent-mem); }
 .kpi-card.status { --accent-color: var(--accent-ok); }
+.kpi-card.disk { --accent-color: var(--accent-disk); }
+.kpi-card.network { --accent-color: var(--accent-network); }
 
 .kpi-label {
   font-size: 12px;

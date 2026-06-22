@@ -427,6 +427,65 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/api/analysis/disk-trend') {
+    try {
+      const rows = db.db.prepare(`
+        SELECT 
+          date(timestamp/1000, 'unixepoch') as date,
+          ROUND(AVG(fs_used_percent), 1) as avgDisk,
+          MIN(fs_used_percent) as minDisk,
+          MAX(fs_used_percent) as maxDisk,
+          COUNT(*) as samples
+        FROM snapshots
+        WHERE timestamp > (strftime('%s', 'now') - 2592000) * 1000
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT 30
+      `).all();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(rows.map(r => ({
+        date: r.date,
+        avgDisk: r.avgDisk,
+        minDisk: r.minDisk,
+        maxDisk: r.maxDisk,
+        samples: r.samples
+      }))));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/analysis/network-trend') {
+    try {
+      const rows = db.db.prepare(`
+        SELECT 
+          date(timestamp/1000, 'unixepoch') as date,
+          ROUND(MAX(net_rx_bytes)/1024/1024, 1) as rxMB,
+          ROUND(MAX(net_tx_bytes)/1024/1024, 1) as txMB,
+          COUNT(*) as samples
+        FROM snapshots
+        WHERE timestamp > (strftime('%s', 'now') - 2592000) * 1000
+          AND net_rx_bytes IS NOT NULL
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT 30
+      `).all();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(rows.map(r => ({
+        date: r.date,
+        rxMB: r.rxMB,
+        txMB: r.txMB,
+        samples: r.samples
+      }))));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
   if (pathname === '/api/db-size') {
     try {
       const stats = db.getStats();

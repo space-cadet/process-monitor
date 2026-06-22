@@ -7,6 +7,8 @@ let chartHistoryData = [];
 let chartTimeRange = 60;
 let currentAnalysisData = null;
 let currentAnalysisTitle = '';
+let previousSnapshot = null;
+let lastNetworkRates = { rx: 0, tx: 0 };
 
 // ─── Main Tab Switching ───
 function switchMainTab(tab) {
@@ -42,6 +44,16 @@ const PRESET_QUERIES = {
     endpoint: '/api/analysis/drain-correlation',
     description: 'Top processes during battery drain events'
   },
+  diskTrend: {
+    title: 'Disk Usage Trend',
+    endpoint: '/api/analysis/disk-trend',
+    description: 'Daily disk usage percentage'
+  },
+  networkTrend: {
+    title: 'Network Activity Trend',
+    endpoint: '/api/analysis/network-trend',
+    description: 'Daily network RX/TX volume'
+  },
   idleVsActive: {
     title: 'Idle vs Active Hours',
     endpoint: '/api/analysis/idle-active',
@@ -54,9 +66,22 @@ const PRESET_QUERIES = {
   }
 };
 
+const analysisCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 async function runPresetQuery(queryKey) {
   const preset = PRESET_QUERIES[queryKey];
   if (!preset) return;
+
+  // Check cache
+  const cached = analysisCache.get(queryKey);
+  if (cached && Date.now() - cached.time < CACHE_TTL_MS) {
+    currentAnalysisData = cached.data;
+    currentAnalysisTitle = preset.title;
+    document.getElementById('analysisTitle').textContent = preset.title;
+    renderAnalysisResults(cached.data, queryKey);
+    return;
+  }
 
   currentAnalysisTitle = preset.title;
   document.getElementById('analysisTitle').textContent = preset.title;
@@ -67,6 +92,7 @@ async function runPresetQuery(queryKey) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     currentAnalysisData = data;
+    analysisCache.set(queryKey, { data, time: Date.now() });
     renderAnalysisResults(data, queryKey);
   } catch (err) {
     document.getElementById('analysisContent').innerHTML =
@@ -100,6 +126,12 @@ function renderAnalysisResults(data, queryKey) {
       break;
     case 'processConsistency':
       renderProcessConsistency(data, container);
+      break;
+    case 'diskTrend':
+      renderDiskTrend(data, container);
+      break;
+    case 'networkTrend':
+      renderNetworkTrend(data, container);
       break;
     default:
       renderGenericTable(data, container);
@@ -256,6 +288,81 @@ function renderProcessConsistency(data, container) {
         </thead>
         <tbody>${rows}</tbody>
       </table>
+    </div>
+  `;
+}
+
+function renderProcessConsistency(data, container) {
+  const rows = data.slice(0, 20).map((d, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><strong>${d.name}</strong></td>
+      <td>${d.avgCpu?.toFixed(1) || '--'}%</td>
+      <td>${d.peakCpu?.toFixed(1) || '--'}%</td>
+      <td>${d.stdCpu?.toFixed(2) || '--'}</td>
+      <td>${d.samples || 0}</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="analysis-table-wrapper">
+      <table class="analysis-table">
+        <thead>
+          <tr><th>#</th><th>Process</th><th>Avg CPU</th><th>Peak CPU</th><th>Std Dev</th><th>Samples</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderDiskTrend(data, container) {
+  const rows = data.map(d => `
+    <tr>
+      <td>${d.date}</td>
+      <td>${d.avgDisk?.toFixed(1) || '--'}%</td>
+      <td>${d.minDisk?.toFixed(1) || '--'}%</td>
+      <td>${d.maxDisk?.toFixed(1) || '--'}%</td>
+      <td>${d.samples || '--'}</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="analysis-table-wrapper">
+      <table class="analysis-table">
+        <thead>
+          <tr><th>Date</th><th>Avg Usage</th><th>Min Usage</th><th>Max Usage</th><th>Samples</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="analysis-summary">
+      <p><strong>Highest usage:</strong> ${data.length > 0 ? Math.max(...data.map(d => d.maxDisk || 0)).toFixed(1) + '%' : 'N/A'}</p>
+    </div>
+  `;
+}
+
+function renderNetworkTrend(data, container) {
+  const rows = data.map(d => `
+    <tr>
+      <td>${d.date}</td>
+      <td>${d.rxMB?.toFixed(1) || '--'} MB</td>
+      <td>${d.txMB?.toFixed(1) || '--'} MB</td>
+      <td>${d.samples || '--'}</td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="analysis-table-wrapper">
+      <table class="analysis-table">
+        <thead>
+          <tr><th>Date</th><th>RX (MB)</th><th>TX (MB)</th><th>Samples</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="analysis-summary">
+      <p><strong>Most active day:</strong> ${data.length > 0 ? data.reduce((a, b) => ((b.rxMB || 0) + (b.txMB || 0) > (a.rxMB || 0) + (a.txMB || 0) ? b : a)).date : 'N/A'}</p>
     </div>
   `;
 }
@@ -426,6 +533,32 @@ function updateDashboard(data) {
   }
   document.getElementById('statusDetail').textContent = new Date(data.timestamp).toLocaleTimeString();
 
+  // Disk KPI
+  const diskPercent = data.fsUsedPercent ?? 0;
+  document.getElementById('diskValue').innerHTML = `${diskPercent.toFixed(1)}<span>%</span>`;
+  document.getElementById('diskDetail').textContent = diskPercent > 90 ? 'Critical usage' : diskPercent > 80 ? 'High usage' : 'Normal';
+
+  // Network KPI — live rates computed from delta with previous snapshot
+  let netRxRate = 0, netTxRate = 0;
+  if (previousSnapshot && data.timestamp && previousSnapshot.timestamp) {
+    const dt = (data.timestamp - previousSnapshot.timestamp) / 1000;
+    if (dt > 0) {
+      netRxRate = Math.max(0, ((data.netRxBytes ?? 0) - (previousSnapshot.netRxBytes ?? 0)) / dt / 1024);
+      netTxRate = Math.max(0, ((data.netTxBytes ?? 0) - (previousSnapshot.netTxBytes ?? 0)) / dt / 1024);
+    }
+  }
+  lastNetworkRates = { rx: netRxRate, tx: netTxRate };
+
+  const fmtRate = v => {
+    if (v >= 1024) return (v / 1024).toFixed(2) + ' MB/s';
+    if (v < 1) return (v * 1024).toFixed(0) + ' B/s';
+    return v.toFixed(1) + ' KB/s';
+  };
+  document.getElementById('netValue').textContent = fmtRate(netRxRate + netTxRate);
+  document.getElementById('netDetail').textContent = `↓ ${fmtRate(netRxRate)} • ↑ ${fmtRate(netTxRate)}`;
+
+  previousSnapshot = data;
+
   currentProcesses = data.processes || [];
   renderProcesses();
 }
@@ -544,7 +677,25 @@ function renderLineChart(data) {
     return;
   }
 
-  let metricKey, maxVal, yLabels, accentColor, accentVar;
+  // Precompute disk/network rates from cumulative counters
+  const enrichedData = data.map((d, i) => {
+    if (i === 0) return { ...d, disk_rate: 0, network_rate: 0 };
+    const prev = data[i - 1];
+    const dt = (d.timestamp - prev.timestamp) / 1000;
+    if (dt <= 0) return { ...d, disk_rate: 0, network_rate: 0 };
+
+    const diskDelta = Math.max(0, (d.disk_total_io ?? 0) - (prev.disk_total_io ?? 0));
+    const netRxDelta = Math.max(0, (d.net_rx_bytes ?? 0) - (prev.net_rx_bytes ?? 0));
+    const netTxDelta = Math.max(0, (d.net_tx_bytes ?? 0) - (prev.net_tx_bytes ?? 0));
+
+    return {
+      ...d,
+      disk_rate: diskDelta / dt,
+      network_rate: (netRxDelta + netTxDelta) / dt / 1024, // KB/s
+    };
+  });
+
+  let metricKey, maxVal, yLabels, accentColor, accentVar, valueFormatter;
   switch (currentChartTab) {
     case 'cpu':
       metricKey = 'cpu_total';
@@ -552,6 +703,7 @@ function renderLineChart(data) {
       yLabels = ['100%', '75%', '50%', '25%', '0%'];
       accentColor = 'var(--accent-cpu)';
       accentVar = '--accent-cpu';
+      valueFormatter = v => v.toFixed(1) + '%';
       break;
     case 'memory':
       metricKey = 'memory_total';
@@ -559,6 +711,40 @@ function renderLineChart(data) {
       yLabels = ['100%', '75%', '50%', '25%', '0%'];
       accentColor = 'var(--accent-mem)';
       accentVar = '--accent-mem';
+      valueFormatter = v => v.toFixed(1) + '%';
+      break;
+    case 'disk':
+      metricKey = 'disk_rate';
+      maxVal = Math.max(1, ...enrichedData.map(d => d.disk_rate || 0));
+      {
+        const fmt = v => v < 10 ? v.toFixed(1) : v.toFixed(0);
+        yLabels = [fmt(maxVal), fmt(maxVal * 0.75), fmt(maxVal * 0.5), fmt(maxVal * 0.25), '0'];
+      }
+      accentColor = 'var(--accent-disk)';
+      accentVar = '--accent-disk';
+      valueFormatter = v => v.toFixed(v < 10 ? 1 : 0) + ' IO/s';
+      break;
+    case 'network':
+      metricKey = 'network_rate';
+      maxVal = Math.max(1, ...enrichedData.map(d => d.network_rate || 0));
+      {
+        // network_rate is in KB/s; adapt unit label
+        let unit = 'KB/s', scale = 1;
+        if (maxVal >= 1024) { unit = 'MB/s'; scale = 1024; }
+        else if (maxVal < 1) { unit = 'B/s'; scale = 1/1024; }
+        const fmt = v => {
+          const scaled = v / scale;
+          return scaled < 10 ? scaled.toFixed(1) : scaled.toFixed(0);
+        };
+        yLabels = [fmt(maxVal) + unit, fmt(maxVal * 0.75) + unit, fmt(maxVal * 0.5) + unit, fmt(maxVal * 0.25) + unit, '0'];
+      }
+      accentColor = 'var(--accent-network)';
+      accentVar = '--accent-network';
+      valueFormatter = v => {
+        if (v >= 1024) return (v / 1024).toFixed(2) + ' MB/s';
+        if (v < 1) return (v * 1024).toFixed(0) + ' B/s';
+        return v.toFixed(1) + ' KB/s';
+      };
       break;
     default:
       metricKey = 'battery_percent';
@@ -566,17 +752,18 @@ function renderLineChart(data) {
       yLabels = ['100%', '75%', '50%', '25%', '0%'];
       accentColor = 'var(--accent-battery)';
       accentVar = '--accent-battery';
+      valueFormatter = v => v.toFixed(1) + '%';
   }
 
   if (yAxis) yAxis.innerHTML = yLabels.map(l => `<span>${l}</span>`).join('');
 
-  const n = data.length;
+  const n = enrichedData.length;
   const padding = { top: 2, bottom: 2, left: 0, right: 0 };
   const chartW = 100 - padding.left - padding.right;
   const chartH = 100 - padding.top - padding.bottom;
 
-  const points = data.map((d, i) => {
-    const val = d[metricKey] ?? d[metricKey.replace('_', '')] ?? 0;
+  const points = enrichedData.map((d, i) => {
+    const val = d[metricKey] ?? 0;
     const x = padding.left + (i / (n - 1 || 1)) * chartW;
     const y = padding.top + chartH - ((val / maxVal) * chartH);
     return { x, y, val, ts: d.timestamp };
@@ -618,9 +805,9 @@ function renderLineChart(data) {
   });
 
   if (xAxis) {
-    const first = data[0];
-    const last = data[data.length - 1];
-    const mid = data[Math.floor(data.length / 2)];
+    const first = enrichedData[0];
+    const last = enrichedData[enrichedData.length - 1];
+    const mid = enrichedData[Math.floor(enrichedData.length / 2)];
     const fmt = (d) => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     xAxis.innerHTML = `<span>${fmt(first)}</span><span>${fmt(mid)}</span><span>${fmt(last)}</span>`;
   }
@@ -633,8 +820,14 @@ function showChartTooltip(e, value, time) {
     chartTooltipEl.className = 'chart-tooltip';
     document.body.appendChild(chartTooltipEl);
   }
-  const label = currentChartTab === 'battery' ? 'Battery' : currentChartTab === 'cpu' ? 'CPU' : 'Memory';
-  chartTooltipEl.innerHTML = `<strong>${value}%</strong> ${label}<br><span style="color:var(--text-dim)">${time}</span>`;
+  const labelMap = { battery: 'Battery', cpu: 'CPU', memory: 'Memory', disk: 'Disk', network: 'Network' };
+  const label = labelMap[currentChartTab] || 'Value';
+  const numVal = parseFloat(value);
+  let formatted = value;
+  if (currentChartTab === 'battery' || currentChartTab === 'cpu' || currentChartTab === 'memory') formatted = numVal.toFixed(1) + '%';
+  else if (currentChartTab === 'disk') formatted = numVal.toFixed(0) + ' IO/s';
+  else if (currentChartTab === 'network') formatted = numVal.toFixed(1) + ' KB/s';
+  chartTooltipEl.innerHTML = `<strong>${formatted}</strong> ${label}<br><span style="color:var(--text-dim)">${time}</span>`;
   const rect = e.target.getBoundingClientRect();
   chartTooltipEl.style.left = (rect.left + rect.width / 2 - chartTooltipEl.offsetWidth / 2) + 'px';
   chartTooltipEl.style.top = (rect.top - chartTooltipEl.offsetHeight - 8) + 'px';
@@ -1019,13 +1212,17 @@ async function loadMonitorConfig() {
     document.getElementById('logProcesses').checked = config.logProcesses !== false;
     document.getElementById('logSpikes').checked = config.logSpikes !== false;
     document.getElementById('logBatteryImpact').checked = config.logBatteryImpact !== false;
+    document.getElementById('drainThreshold').value = config.alert?.drainThreshold ?? 0.5;
+    document.getElementById('minDuration').value = config.alert?.minDuration ?? 1;
+    document.getElementById('cooldownMinutes').value = config.alert?.cooldownMinutes ?? 5;
   } catch (err) { console.error('Config load error:', err); }
 }
 
-async function saveMonitorConfig() {
-  const btn = document.querySelector('#settingsPanel .panel-btn.primary');
-  const originalText = btn.textContent;
-  btn.textContent = 'Saving...'; btn.disabled = true;
+async function saveMonitorConfig(silent = false) {
+  if (!silent) {
+    const btn = document.querySelector('#settingsPanel .panel-btn.primary');
+    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+  }
 
   try {
     const config = {
@@ -1036,6 +1233,12 @@ async function saveMonitorConfig() {
       logProcesses: document.getElementById('logProcesses').checked,
       logSpikes: document.getElementById('logSpikes').checked,
       logBatteryImpact: document.getElementById('logBatteryImpact').checked,
+      alert: {
+        enabled: true,
+        drainThreshold: parseFloat(document.getElementById('drainThreshold').value) || 0.5,
+        minDuration: parseInt(document.getElementById('minDuration').value) || 1,
+        cooldownMinutes: parseInt(document.getElementById('cooldownMinutes').value) || 5,
+      }
     };
 
     const res = await fetch(`${API_BASE}/api/config`, {
@@ -1046,14 +1249,52 @@ async function saveMonitorConfig() {
 
     const data = await res.json();
     if (data.success) {
-      document.getElementById('restartNotice').style.display = 'block';
-      setTimeout(() => { document.getElementById('restartNotice').style.display = 'none'; }, 30000);
+      if (!silent) {
+        document.getElementById('restartNotice').style.display = 'block';
+        setTimeout(() => { document.getElementById('restartNotice').style.display = 'none'; }, 30000);
+      }
+      showAutoSaveIndicator();
     } else { throw new Error(data.error || 'Save failed'); }
   } catch (err) {
-    alert('Failed to save config: ' + err.message);
+    if (!silent) alert('Failed to save config: ' + err.message);
+    console.error('Auto-save error:', err);
   } finally {
-    btn.textContent = originalText; btn.disabled = false;
+    if (!silent) {
+      const btn = document.querySelector('#settingsPanel .panel-btn.primary');
+      if (btn) { btn.textContent = '💾 Save Config'; btn.disabled = false; }
+    }
   }
+}
+
+let autoSaveTimeout = null;
+let autoSaveIndicatorTimeout = null;
+function showAutoSaveIndicator() {
+  let indicator = document.getElementById('autoSaveIndicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'autoSaveIndicator';
+    indicator.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--accent-ok);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:1000;';
+    indicator.textContent = '💾 Saved';
+    document.body.appendChild(indicator);
+  }
+  indicator.style.opacity = '1';
+  if (autoSaveIndicatorTimeout) clearTimeout(autoSaveIndicatorTimeout);
+  autoSaveIndicatorTimeout = setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+}
+
+function debouncedAutoSave() {
+  if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+  autoSaveTimeout = setTimeout(() => saveMonitorConfig(true), 500);
+}
+
+function initSettingsAutoSave() {
+  const inputs = document.querySelectorAll('#settingsTab input[type="number"], #settingsTab input[type="checkbox"]');
+  inputs.forEach(input => {
+    input.addEventListener('change', debouncedAutoSave);
+    if (input.type === 'number') {
+      input.addEventListener('input', debouncedAutoSave);
+    }
+  });
 }
 
 // Initialize
@@ -1066,6 +1307,7 @@ function init() {
   loadServerInfo();
   loadSettings();
   loadMonitorConfig();
+  initSettingsAutoSave();
 
   refreshInterval = setInterval(() => {
     fetchData(); loadDrainEvents(); loadDbSize(); loadServerInfo();

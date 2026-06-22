@@ -1,10 +1,31 @@
 # Edit History
 
-*Last Updated: 2026-06-22 10:56 IST*
+*Last Updated: 2026-06-22 18:12 IST*
 
 ---
 
 ## 2026-06-22
+
+#### 18:12 IST - T4: Dashboard v4 — Disk/Network Monitoring + Auto-Save + Drain Settings
+
+**T4 Extended Again: Dashboard v4**
+- Modified `src/config/ConfigManager.ts` — More sensitive drain detection defaults (threshold 0.5%/min, minDuration 1min, cooldown 5min)
+- Modified `src/storage/TimeSeriesDB.ts` — `getSnapshotHistory()` now returns disk/network columns for chart rate computation
+- Modified `src/web/server.ts` — Added `/api/analysis/disk-trend` and `/api/analysis/network-trend` endpoints
+- Modified `web/public/index.html` — New Disk/Network KPI cards, chart tabs, analysis preset buttons, drain detection settings inputs
+- Modified `web/public/app.js` — Auto-save with 500ms debounce, client-side query caching (5-min TTL), live network rate computation from snapshot deltas, disk/network chart rate computation, adaptive y-axis formatters, mobile chart tab overflow fix
+- Modified `web/public/styles.css` — Disk (#8b5cf6) and Network (#06b6d4) accent colors, mobile horizontal scroll for chart tabs
+- Restarted dashboard server to activate new endpoints
+
+**Features**
+- Drain Detection settings adjustable via Settings panel with more sensitive defaults
+- Client-side analysis query caching prevents re-running expensive SQL
+- Auto-save settings with transient "💾 Saved" toast
+- Disk KPI (usage %), chart (I/O rate), and analysis preset (daily trend)
+- Network KPI (live RX/TX throughput), chart (KB/s rate), and analysis preset (daily volume)
+- Adaptive unit labels: B/s → KB/s → MB/s based on magnitude
+
+---
 
 #### 10:56 IST - T17: Multi-Device Dashboard — Syncthing-Inspired Architecture
 

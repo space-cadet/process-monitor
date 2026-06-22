@@ -236,7 +236,7 @@ export class TimeSeriesDB {
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      
+
       const insertProc = this.db.transaction((processes) => {
         for (const proc of processes) {
           procStmt.run(
@@ -280,7 +280,7 @@ export class TimeSeriesDB {
 
   /**
    * Returns raw snapshot rows (newest first) for the dashboard API.
-   * Includes all columns directly from the DB — no type reconstruction.
+   * Includes all columns directly from the DB - no type reconstruction.
    */
   getRecentSnapshotsRaw(minutes: number = 60): any[] {
     const cutoff = Date.now() - minutes * 60000;
@@ -316,10 +316,10 @@ export class TimeSeriesDB {
       params.push(since);
     }
     sql += ' ORDER BY start_time DESC';
-    
+
     const stmt = this.db.prepare(sql);
     const rows = stmt.all(...params) as any[];
-    
+
     return rows.map(r => ({
       ...r,
       wasCharging: !!r.was_charging,
@@ -329,14 +329,14 @@ export class TimeSeriesDB {
 
   cleanupOldSamples(retentionDays: number): void {
     const cutoff = Date.now() - retentionDays * 86400000;
-    
+
     // Delete old process samples first (foreign key)
     this.db.prepare(`
       DELETE FROM process_samples WHERE snapshot_id IN (
         SELECT id FROM snapshots WHERE timestamp < ?
       )
     `).run(cutoff);
-    
+
     // Delete old snapshots
     this.db.prepare('DELETE FROM snapshots WHERE timestamp < ?').run(cutoff);
   }
@@ -344,7 +344,7 @@ export class TimeSeriesDB {
   getStats(): { totalSnapshots: number; totalEvents: number; oldestSnapshot: number | null; dbSizeBytes: number } {
     const snapshots = this.db.prepare('SELECT COUNT(*) as count, MIN(timestamp) as oldest FROM snapshots').get() as any;
     const events = this.db.prepare('SELECT COUNT(*) as count FROM drain_events').get() as any;
-    
+
     // Get DB file size
     let dbSizeBytes = 0;
     try {
@@ -353,7 +353,7 @@ export class TimeSeriesDB {
     } catch {
       // Ignore if file not accessible
     }
-    
+
     return {
       totalSnapshots: snapshots.count,
       totalEvents: events.count,
@@ -400,12 +400,13 @@ export class TimeSeriesDB {
     };
   }
 
-  getSnapshotHistory(minutes: number = 60): { timestamp: number; batteryPercent: number; cpuTotal: number; memoryTotal: number }[] {
+  getSnapshotHistory(minutes: number = 60): { timestamp: number; batteryPercent: number; cpuTotal: number; memoryTotal: number; diskTotalIO: number; netRxBytes: number; netTxBytes: number; fsUsedPercent: number }[] {
     const cutoff = Date.now() - minutes * 60000;
     const stmt = this.db.prepare(`
-      SELECT timestamp, battery_percent, cpu_total, memory_total 
-      FROM snapshots 
-      WHERE timestamp > ? 
+      SELECT timestamp, battery_percent, cpu_total, memory_total,
+             disk_total_io, net_rx_bytes, net_tx_bytes, fs_used_percent
+      FROM snapshots
+      WHERE timestamp > ?
       ORDER BY timestamp ASC
     `);
     return stmt.all(cutoff) as any[];
@@ -426,7 +427,7 @@ export class TimeSeriesDB {
 
   getProcessStats(name: string, sinceTimestamp: number): { avgCpu: number; peakCpu: number; avgMem: number; peakMem: number; samples: number } | null {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         AVG(ps.cpu_percent) as avg_cpu,
         MAX(ps.cpu_percent) as peak_cpu,
         AVG(ps.memory_percent) as avg_mem,
@@ -444,7 +445,7 @@ export class TimeSeriesDB {
     const peakCol = metric === 'cpu' ? 'MAX(cpu_percent)' : 'MAX(memory_percent)';
 
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         name,
         ${avgCol} as avg_${metric},
         ${peakCol} as peak_${metric},
@@ -499,7 +500,7 @@ export class TimeSeriesDB {
 
   getSpikeStats(sinceTimestamp: number): any[] {
     const stmt = this.db.prepare(`
-      SELECT 
+      SELECT
         process_name,
         metric_type,
         COUNT(*) as spike_count,

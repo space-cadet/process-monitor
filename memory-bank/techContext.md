@@ -96,17 +96,28 @@ mac-process-monitor/
 │   ├── types/
 │   │   └── index.ts              # All TypeScript interfaces
 │   ├── core/
-│   │   ├── SystemCollector.ts    # Battery + process sampling
+│   │   ├── SystemCollector.ts    # Battery + process + disk/network sampling
 │   │   ├── DrainAnalyzer.ts      # Sliding window drain detection
+│   │   ├── SpikeDetector.ts      # Per-process CPU/memory spike detection
+│   │   ├── BatteryImpactAnalyzer.ts # Drain correlation + impact scoring
+│   │   ├── AlertSender.ts        # Telegram + macOS notifications
 │   │   └── Monitor.ts            # Orchestrator loop
 │   ├── storage/
 │   │   └── TimeSeriesDB.ts       # SQLite time-series storage
+│   ├── config/
+│   │   └── ConfigManager.ts      # JSON config persistence
+│   ├── web/
+│   │   └── server.ts             # Dashboard HTTP server (native http)
+│   ├── query.ts                  # CLI query interface
 │   ├── main.ts                   # Entry point
 │   ├── show-data.ts              # Live data display
-│   ├── test-basic.ts             # Battery/process validation
-│   ├── test-collector.ts         # Collector + DB integration
-│   └── test-analyzer.ts          # Drain detection with fake data
+│   └── test-*.ts                 # Validation scripts
+├── web/public/                   # Dashboard frontend
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
 ├── memory-bank/                  # Project documentation
+├── check-and-start.sh            # Cron health check script
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -125,6 +136,9 @@ mac-process-monitor/
 - `battery_percent REAL NOT NULL`
 - `is_charging INTEGER NOT NULL`
 - `cpu_total REAL`, `memory_total REAL`
+- `disk_read_io REAL`, `disk_write_io REAL`, `disk_total_io REAL`
+- `net_rx_bytes REAL`, `net_tx_bytes REAL`
+- `fs_used_percent REAL`, `cpu_temp REAL`
 
 ### process_samples
 - `id INTEGER PRIMARY KEY AUTOINCREMENT`
@@ -143,7 +157,7 @@ mac-process-monitor/
 1. **Sample** battery + top-50 processes every `sampleIntervalSeconds` (default: 30s)
 2. **Store** in SQLite (`snapshots` + `process_samples`)
 3. **Analyze** sliding `windowMinutes` window (default: 5 min, ~11 samples)
-4. **Trigger** if: not charging, drop rate > `drainThreshold` (default: 1%/min), sustained for `minDuration` (default: 2 min), and cooldown expired (default: 10 min)
+4. **Trigger** if: not charging, drop rate > `drainThreshold` (default: 0.5%/min), sustained for `minDuration` (default: 1 min), and cooldown expired (default: 5 min)
 5. **Correlate** — average CPU per PID across all samples in window, return top 5
 6. **Store event** in `drain_events` + alert (T2)
 

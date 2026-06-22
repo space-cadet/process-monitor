@@ -12,11 +12,11 @@
   - Drain, spike, and battery impact alerts all wired
   - Per-event cooldowns prevent spam
 - **T3 — Per-Process Query Interface**: ✅ COMPLETE
-- **T4 — Web Dashboard**: ✅ COMPLETE (Extended 2026-06-19)
+- **T4 — Web Dashboard**: ✅ COMPLETE (Extended 2026-06-19, Extended again 2026-06-22)
   - v1: Basic HTML dashboard (2026-05-18)
   - v2: Full rebuild with charts, profiles, 12 API endpoints (2026-06-10)
-  - v3: **Analysis tab** with 6 preset SQL queries, quick stats, export (2026-06-19)
-  - v3: **Settings tab** with restart button, confirmation dialog, config management (2026-06-19)
+  - v3: Analysis tab with 6 preset SQL queries, Settings tab with restart/cleanup (2026-06-19)
+  - v4: **Disk/Network KPIs + charts**, auto-save settings, drain detection settings, query caching, mobile fixes (2026-06-22)
   - Dashboard auto-start via cron (monitors both monitor + dashboard processes)
 - **T6 — Process Spike Detection**: ✅ COMPLETE
 - **T7 — Battery Impact Correlation**: ✅ COMPLETE
@@ -50,6 +50,7 @@
 - No formal test framework (Jest configured but no test files written)
 - Battery impact data needs longer runtime on battery power (currently 0 events — needs 2% drop over 2+ min while not charging)
 - Telegram alerts not tested with real bot token (only verified code path works)
+- **Disk/Network chart y-axis**: Auto-scales correctly now, but very low activity periods show flat lines (expected — counters don't change when idle)
 
 ### Timeline
 
@@ -67,7 +68,8 @@
 | 2026-06-18 | Settings tab: full config management + DB cleanup | ✅ |
 | 2026-06-18 | Tasks T9-T16 created and prioritized | ✅ |
 | 2026-06-19 | T4-ext: Analysis + Settings tabs, 6 SQL queries, export | ✅ |
-| *Next* | T9: Sleep/Wake correlation or T10: Reports | ⬜ |
+| 2026-06-22 | T4-ext2: Disk/Network monitoring, auto-save, drain settings | ✅ |
+| *Next* | T9: Sleep/Wake correlation or T10: Reports or T17: Multi-device | ⬜ |
 
 ### Current Blockers
 
