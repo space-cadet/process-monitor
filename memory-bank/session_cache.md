@@ -5,11 +5,43 @@
 
 ## Current Session Context
 
-**Status:** Active — Dashboard v3 (Analysis + Settings tabs) implemented and fixed
+**Status:** Active — T17 multi-device dashboard design complete, check-and-start.sh improved
+
+**Session Start:** 2026-06-22 10:33 IST
+**Current Focus:** T17 Multi-Device Dashboard (planning)
 
 ### Completed in This Session
 
-1. **Dashboard v3: Three-Tab Redesign** ✅
+1. **T17: Multi-Device Dashboard Architecture** ✅ (Design Complete)
+   - Syncthing-inspired discovery model documented
+   - QR code pairing flow designed
+   - 3-phase implementation plan (V1 manual → V2 mDNS → V3 global+relay)
+   - API endpoints designed: `/api/identity`, `/api/metrics`, `/api/devices`
+   - Task file T17.md created with full technical spec
+   - Dashboard architecture: each device is monitor+dash+identity, observer polls all
+
+2. **check-and-start.sh improvement** ✅
+   - Port-based dashboard check (lsof -ti:3456) instead of fragile process name matching
+   - Non-zero exit code when restarts happen (for cron reporting)
+   - Improved logging with timestamps
+
+### Incident Note
+- Earlier today (03:48 IST): Git reset incident caused loss of workspace memory bank history
+- Root cause: `git reset --hard` in Sage's workspace repo (NOT in project repos)
+- Damage: Workspace memory bank files lost, project repos unaffected
+- Lesson: Destructive git operations require explicit approval, verified git status first
+
+### Files In Flight
+- `check-and-start.sh` — Port-based dashboard health check (more robust)
+- `memory-bank/` — Updated with T17 task, edit chunk, activeContext, session_cache, edit_history
+
+### Next Actions (User-Dependent)
+- Implement T17 V1: Multi-Device Dashboard — identity endpoint, QR code, observer polling
+- T9: Sleep/Wake tracking — HIGH priority
+- T10: Daily battery report — builds on analysis endpoints
+
+### Context Token Estimate
+~50% used
    - Overview tab: existing live dashboard preserved
    - Analysis tab: 6 preset SQL queries + quick stats + export (JSON/CSV)
    - Settings tab: restart button, confirmation dialog, config management, cleanup
@@ -49,9 +81,9 @@
 - `memory-bank/` files updated
 
 ### Next Actions (User-Dependent)
-- Implement T9 (Sleep/Wake) — HIGH priority
-- Implement T10 (Reports) — builds on analysis endpoints
-- T16: Native notifications
+- Implement T17 V1: Multi-Device Dashboard — identity endpoint, QR code, observer polling
+- T9: Sleep/Wake tracking — HIGH priority
+- T10: Daily battery report — builds on analysis endpoints
 
 ### Context Token Estimate
 ~50% used — approaching threshold, consider `/new` if more work planned

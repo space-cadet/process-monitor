@@ -1,6 +1,44 @@
 # Edit History
 
-*Last Updated: 2026-06-19 00:52 IST*
+*Last Updated: 2026-06-22 10:56 IST*
+
+---
+
+## 2026-06-22
+
+#### 10:56 IST - T17: Multi-Device Dashboard — Syncthing-Inspired Architecture
+
+**T17 Design: Multi-Device Dashboard (Planning Complete)**
+- Created `memory-bank/tasks/T17.md` — Full technical specification with architecture, API design, implementation phases
+- Created edit chunk `edits/2026-06-22/1056-T17-multi-device-dashboard.md` — Detailed plan and decisions
+- Updated `tasks.md` — Added T17 to HIGH priority
+- Updated `activeContext.md` — Added T17 as current focus, updated next steps
+- Updated `session_cache.md` — Added T17 design completion to session context
+- Updated `check-and-start.sh` — Port-based dashboard check (more robust than process name matching)
+
+**Architecture Overview**
+- Syncthing-style discovery: local mDNS (Layer 1), global discovery server (Layer 2), relay fallback (Layer 3)
+- QR code pairing: device shows QR → observer scans → polls for metrics
+- Each device runs: monitor + dashboard + identity endpoint
+- Observer: unified view of all devices as cards (battery, processes, alerts)
+
+**Implementation Phases**
+- V1: Manual QR + polling (no infrastructure) — immediate
+- V2: QR + mDNS auto-discovery — local network
+- V3: Full Syncthing — global discovery + relay on Cloudy
+
+**API Design**
+- `GET /api/identity` → `{ did, name, version, endpoints[] }`
+- `GET /api/metrics?since=<timestamp>` → `{ battery, processes, alerts, timestamp }`
+- `GET /api/devices` → known devices list
+
+**Open Questions**
+- Observer mode: separate page or same dashboard?
+- Authentication for V2+: bearer token with device ID?
+- Cloudy as relay vs. separate relay server?
+- Mobile UI framework: continue Tailwind or native wrapper?
+
+**New Task: T17** — Multi-Device Dashboard (HIGH priority, 4-6h estimated, depends on T4 done)
 
 ---
 

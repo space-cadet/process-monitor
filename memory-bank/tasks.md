@@ -34,6 +34,7 @@ Task tracking for the mac-process-monitor project. Tasks are ordered by priority
 
 | ID | Title | Why | Est. Effort | Dependencies |
 |----|-------|-----|-------------|--------------|
+| T17 | Multi-Device Dashboard — Syncthing-Style | Monitor all devices from one mobile view; QR pairing | 4-6h | T4 (done) |
 | T9 | Sleep/Wake Correlation Tracking | Catch drain during sleep — biggest blind spot | 2-3h | None |
 | T10 | "What Drained My Battery?" Automated Report | Synthesize raw data into actionable insights | 3-4h | T7 |
 
