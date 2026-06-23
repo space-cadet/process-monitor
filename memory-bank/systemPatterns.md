@@ -1,4 +1,4 @@
-# System Patterns: mac-process-monitor
+# System Patterns: process-monitor
 
 ## System Architecture
 The monitor follows a pipeline architecture where each stage is independent and can be tested in isolation:

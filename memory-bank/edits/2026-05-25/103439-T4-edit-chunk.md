@@ -12,5 +12,5 @@ Web Dashboard for Live Monitoring - mobile responsive, clickable column sorting,
 - Modified `web/public/styles.css` — Mobile-responsive process table, horizontal scroll, chart styling
 - Modified `web/public/index.html` — Removed separate sort buttons, added table wrapper for horizontal scroll
 - Modified `src/web/server.ts` — Dashboard server with API endpoints
-- Created `com.deepak.mac-process-monitor.dashboard.plist` — launchd service for persistent background running
+- Created `com.deepak.process-monitor.dashboard.plist` — launchd service for persistent background running
 

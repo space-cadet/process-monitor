@@ -1,15 +1,15 @@
 #!/bin/bash
-# Check if mac-process-monitor and dashboard are running, start if not
+# Check if process-monitor and dashboard are running, start if not
 
-MONITOR_LOG="/Users/sage/.openclaw/workspace/code/mac-process-monitor/logs/auto-start.log"
+MONITOR_LOG="/Users/sage/.openclaw/workspace/code/process-monitor/logs/auto-start.log"
 RESTARTED=0
 
-cd /Users/sage/.openclaw/workspace/code/mac-process-monitor
+cd /Users/sage/.openclaw/workspace/code/process-monitor
 
 # Check monitor (process-based: tsx running src/main.ts)
 if ! pgrep -f "tsx.*src/main.ts" > /dev/null 2>&1; then
     bash run.sh > /dev/null 2>&1 &
-    echo "$(date '+%Y-%m-%d %H:%M:%S'): mac-process-monitor started" >> "$MONITOR_LOG"
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): process-monitor started" >> "$MONITOR_LOG"
     RESTARTED=1
 fi
 

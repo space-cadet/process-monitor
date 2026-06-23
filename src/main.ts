@@ -1,7 +1,7 @@
 import { Monitor } from './core/Monitor.js';
 
 /**
- * Entry point for mac-process-monitor v2.
+ * Entry point for process-monitor v2.
  * Starts the battery/CPU monitoring loop.
  */
 async function main() {

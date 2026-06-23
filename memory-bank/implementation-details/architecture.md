@@ -1,6 +1,6 @@
 # Mac Process Monitor — Architecture & Implementation
 
-*Project*: mac-process-monitor  
+*Project*: process-monitor  
 *Version*: 2.0 (TypeScript rewrite)  
 *Last Updated*: 2026-05-25  
 
@@ -197,7 +197,7 @@ pnpm run build   # tsc compilation
 ## File Structure
 
 ```
-mac-process-monitor/
+process-monitor/
 ├── src/
 │   ├── core/
 │   │   ├── SystemCollector.ts    # Battery, CPU, process collection

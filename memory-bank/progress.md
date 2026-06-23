@@ -1,4 +1,4 @@
-# Progress Report: mac-process-monitor
+# Progress Report: process-monitor
 
 *Last Updated: 2026-06-19 00:52 IST*
 

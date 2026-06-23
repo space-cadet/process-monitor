@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Initialize memory bank database for mac-process-monitor
+ * Initialize memory bank database for process-monitor
  * Creates memory_bank.db with Phase A schema
  */
 

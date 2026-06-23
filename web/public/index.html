@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mac Process Monitor</title>
+  <title>Process Monitor</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,7 +13,7 @@
       <div class="brand">
         <div class="brand-icon">🔋</div>
         <div>
-          <h1>Mac Process Monitor</h1>
+          <h1>Process Monitor</h1>
           <span>Real-time battery & process tracking</span>
         </div>
       </div>
@@ -37,6 +37,12 @@
       </button>
       <button class="main-tab" data-tab="settings" onclick="switchMainTab('settings')">
         <span class="tab-icon">⚙️</span> Settings
+      </button>
+      <button class="main-tab" data-tab="reports" onclick="switchMainTab('reports')">
+        <span class="tab-icon">📋</span> Reports
+      </button>
+      <button class="main-tab" data-tab="sleep" onclick="switchMainTab('sleep')">
+        <span class="tab-icon">🌙</span> Sleep
       </button>
     </nav>
 
@@ -408,15 +414,51 @@
           <div class="settings-section">
             <div class="settings-restart-notice" id="restartNotice" style="display: none;">
               ⚠️ Config saved! Restart the monitor to apply changes.
-              <code>cd ~/.openclaw/workspace/code/mac-process-monitor && bash run.sh</code>
+              <code>cd ~/.openclaw/workspace/code/process-monitor && bash run.sh</code>
             </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- ─── REPORTS TAB ─── -->
+    <div class="tab-content" id="reportsTab">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="--panel-accent: var(--accent-battery);">📋 Daily Battery Report</div>
+          <div class="panel-actions">
+            <input type="date" id="reportDate" style="background:var(--surface-raised);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-family:var(--font-mono);font-size:13px;">
+            <button class="panel-btn" onclick="loadReport()">Load Report</button>
+          </div>
+        </div>
+        <div class="analysis-content" id="reportContent">
+          <div class="analysis-placeholder">
+            <div class="placeholder-icon">📋</div>
+            <h3>Select a date to view the daily battery report</h3>
+            <p>Reports include battery health, drain events, top CPU culprits, and insights.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SLEEP TAB ─── -->
+    <div class="tab-content" id="sleepTab">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="--panel-accent: #a78bfa;">🌙 Sleep/Wake Events</div>
+          <div class="panel-actions">
+            <button class="panel-btn" onclick="loadSleepWakeEvents(7)">7 Days</button>
+            <button class="panel-btn active" onclick="loadSleepWakeEvents(1)">24h</button>
+          </div>
+        </div>
+        <div class="sleep-timeline" id="sleepTimeline">
+          <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <footer>
-      Mac Process Monitor v2.0 • SQLite time-series storage • Auto-refresh every 5s
+      Process Monitor v2.0 • SQLite time-series storage • Auto-refresh every 5s
     </footer>
   </div>
 

@@ -1,7 +1,7 @@
 {
-  "name": "mac-process-monitor",
+  "name": "process-monitor",
   "version": "2.0.0",
-  "description": "macOS system monitor - battery drain detection, CPU correlation, TypeScript",
+  "description": "System monitor - battery drain detection, CPU correlation, TypeScript",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",

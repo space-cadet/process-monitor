@@ -1,4 +1,4 @@
-# Technical Context: mac-process-monitor
+# Technical Context: process-monitor
 
 ## Technology Stack
 
@@ -91,7 +91,7 @@ npx tsx src/test-basic.ts  # Validate battery/process collection
 
 ## File Structure
 ```
-mac-process-monitor/
+process-monitor/
 ├── src/
 │   ├── types/
 │   │   └── index.ts              # All TypeScript interfaces

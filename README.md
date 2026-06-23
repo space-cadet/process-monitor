@@ -1,8 +1,8 @@
-# mac-process-monitor
+# process-monitor
 
 A macOS system monitor that tracks battery drain, CPU/memory spikes, and correlates them with running processes. Built in TypeScript with SQLite time-series storage and a real-time web dashboard.
 
-**GitHub**: https://github.com/space-cadet/mac-process-monitor (public)
+**GitHub**: https://github.com/space-cadet/process-monitor (public)
 
 ## What It Does
 

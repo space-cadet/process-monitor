@@ -1,4 +1,4 @@
-# Project Brief: mac-process-monitor
+# Project Brief: process-monitor
 
 ## Overview
 A cross-platform system monitor that tracks battery drain, CPU, memory, disk I/O, network activity, and per-process resource usage. Stores time-series data in SQLite and detects rapid battery drain correlated with CPU-intensive processes. Built in TypeScript with `systeminformation` + `better-sqlite3`.

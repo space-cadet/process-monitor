@@ -1,6 +1,6 @@
 # Mac Process Monitor — Web Dashboard Implementation
 
-*Project*: mac-process-monitor  
+*Project*: process-monitor  
 *Component*: Web Dashboard (T4)  
 *Last Updated*: 2026-06-22
 

@@ -1470,3 +1470,110 @@ footer {
 .analysis-main {
   min-width: 0;
 }
+
+/* Sleep/Wake Timeline Styles */
+.sleep-timeline {
+  padding: 16px;
+}
+
+.sleep-cycle {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.sleep-cycle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sleep-cycle-date {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.sleep-cycle-drain {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sleep-cycle-timeline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sleep-cycle-event {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.sleep-cycle-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-mem-dim);
+  border-radius: 50%;
+}
+
+.sleep-cycle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sleep-cycle-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sleep-cycle-time {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.sleep-cycle-battery {
+  font-size: 13px;
+  color: var(--accent-battery);
+  font-weight: 500;
+}
+
+.sleep-cycle-duration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.sleep-cycle-bar {
+  width: 100%;
+  height: 2px;
+  background: var(--accent-mem-dim);
+  border-radius: 1px;
+}
+
+.sleep-cycle-hours {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.sleep-cycle-summary {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-dim);
+}

@@ -56,5 +56,5 @@ See `memory-bank/tasks/T17.md` for full spec.
 - **DB**: `~/.procmon/monitor.db` — ~90+ MB, 17K+ snapshots, 750K+ process samples
 - **Dashboard**: Running on http://localhost:3456 with 5 chart tabs (Battery, CPU, Memory, Disk, Network)
 - **Monitor**: Running via LaunchDaemon + cron check every 10 minutes
-- **GitHub Repo**: https://github.com/space-cadet/mac-process-monitor (public, 27+ commits)
+- **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 27+ commits)
 - **Git Status**: Uncommitted changes from T4 v4 work

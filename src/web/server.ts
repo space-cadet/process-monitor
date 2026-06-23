@@ -66,6 +66,21 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/api/report') {
+    try {
+      const date = url.searchParams.get('date') || 'today';
+      const { ReportGenerator } = await import('../core/ReportGenerator.js');
+      const generator = new ReportGenerator(db);
+      const report = generator.generateReport(date);
+      res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+      res.end(report);
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
   if (pathname === '/api/drain-events') {
     try {
       const events = db.getDrainEvents();
@@ -517,7 +532,7 @@ const server = createServer(async (req, res) => {
     try {
       // Spawn monitor restart in background
       const { exec } = require('child_process');
-      exec('pkill -f "tsx.*src/main.ts" && sleep 2 && cd /Users/sage/.openclaw/workspace/code/mac-process-monitor && bash run.sh > logs/monitor.log 2> logs/monitor-error.log &', {
+      exec('pkill -f "tsx.*src/main.ts" && sleep 2 && cd /Users/sage/.openclaw/workspace/code/process-monitor && bash run.sh > logs/monitor.log 2> logs/monitor-error.log &', {
         env: { ...process.env, HOME: '/Users/sage' }
       });
       res.writeHead(200, { 'Content-Type': 'application/json' });

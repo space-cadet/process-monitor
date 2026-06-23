@@ -1,11 +1,11 @@
-# Memory Bank - mac-process-monitor Tasks
+# Memory Bank - process-monitor Tasks
 
 *Created: 2026-05-25*
 *Last Updated: 2026-06-19*
 
 ## Overview
 
-Task tracking for the mac-process-monitor project. Tasks are ordered by priority (HIGH → LOW).
+Task tracking for the process-monitor project. Tasks are ordered by priority (HIGH → LOW).
 
 ## Task Legend
 - ✅ Complete

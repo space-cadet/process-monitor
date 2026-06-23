@@ -1,4 +1,4 @@
-# Product Context: mac-process-monitor
+# Product Context: process-monitor
 
 ## Problem Statement
 macOS users often don't notice when an app starts draining their battery aggressively — until it's too late. Background processes, browser tabs with runaway JavaScript, or apps stuck in a loop can silently consume CPU and kill battery life. Activity Monitor shows real-time data but doesn't track history or alert you when drain accelerates.

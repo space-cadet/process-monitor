@@ -19,6 +19,8 @@ function switchMainTab(tab) {
 
   if (tab === 'analysis') {
     loadQuickStats();
+  } else if (tab === 'sleep') {
+    loadSleepWakeEvents(7);
   }
 }
 
@@ -432,6 +434,103 @@ function exportAnalysisCSV() {
   a.download = `analysis-${currentAnalysisTitle.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── Sleep/Wake Event Functions ───
+
+async function loadSleepWakeEvents(days = 7) {
+  try {
+    const since = Date.now() - days * 86400000;
+    const res = await fetch(`${API_BASE}/api/sleep-wake-events?since=${since}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const events = await res.json();
+    renderSleepWakeEvents(events);
+  } catch (err) {
+    console.error('Sleep/wake fetch error:', err);
+    document.getElementById('sleepTimeline').innerHTML =
+      `<div style="padding: 20px; color: var(--text-dim); text-align: center;">Error: ${err.message}</div>`;
+  }
+}
+
+function renderSleepWakeEvents(events) {
+  const container = document.getElementById('sleepTimeline');
+  if (!events || events.length === 0) {
+    container.innerHTML = `<div style="padding: 20px; color: var(--text-dim); text-align: center;">No sleep/wake events recorded</div>`;
+    return;
+  }
+
+  // Pair sleep and wake events
+  const pairs = [];
+  let lastSleep = null;
+  
+  for (const e of events) {
+    if (e.event_type === 'sleep') {
+      lastSleep = e;
+    } else if (e.event_type === 'wake' && lastSleep) {
+      const sleepTime = new Date(lastSleep.timestamp);
+      const wakeTime = new Date(e.timestamp);
+      const durationMs = wakeTime - sleepTime;
+      const durationHours = (durationMs / 3600000).toFixed(1);
+      const drain = (lastSleep.battery_percent - e.battery_percent).toFixed(1);
+      
+      pairs.push({
+        sleepTime,
+        wakeTime,
+        sleepBattery: lastSleep.battery_percent,
+        wakeBattery: e.battery_percent,
+        drain,
+        durationHours,
+        isCharging: e.is_charging
+      });
+      lastSleep = null;
+    }
+  }
+
+  if (pairs.length === 0) {
+    container.innerHTML = `<div style="padding: 20px; color: var(--text-dim); text-align: center;">No complete sleep/wake cycles found</div>`;
+    return;
+  }
+
+  container.innerHTML = pairs.map(pair => {
+    const sleepStr = pair.sleepTime.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const wakeStr = pair.wakeTime.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const drainColor = pair.drain > 20 ? 'var(--accent-drain)' : pair.drain > 10 ? 'var(--accent-cpu)' : 'var(--accent-ok)';
+    
+    return `
+      <div class="sleep-cycle">
+        <div class="sleep-cycle-header">
+          <div class="sleep-cycle-date">${pair.sleepTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+          <div class="sleep-cycle-drain" style="color: ${drainColor}">↓ ${pair.drain}% drain</div>
+        </div>
+        <div class="sleep-cycle-timeline">
+          <div class="sleep-cycle-event">
+            <div class="sleep-cycle-icon">🌙</div>
+            <div class="sleep-cycle-info">
+              <div class="sleep-cycle-label">Slept</div>
+              <div class="sleep-cycle-time">${sleepStr}</div>
+              <div class="sleep-cycle-battery">${pair.sleepBattery.toFixed(0)}%</div>
+            </div>
+          </div>
+          <div class="sleep-cycle-duration">
+            <div class="sleep-cycle-bar"></div>
+            <div class="sleep-cycle-hours">${pair.durationHours}h</div>
+          </div>
+          <div class="sleep-cycle-event">
+            <div class="sleep-cycle-icon">☀️</div>
+            <div class="sleep-cycle-info">
+              <div class="sleep-cycle-label">Woke</div>
+              <div class="sleep-cycle-time">${wakeStr}</div>
+              <div class="sleep-cycle-battery">${pair.wakeBattery.toFixed(0)}%</div>
+            </div>
+          </div>
+        </div>
+        <div class="sleep-cycle-summary">
+          ${pair.isCharging ? '⚡ Charging' : '🔋 On battery'} • 
+          ${pair.drain > 0 ? `${pair.drain}% lost during sleep` : 'No drain detected'}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // ─── Overview Tab (existing functionality) ───
@@ -1287,6 +1386,59 @@ function debouncedAutoSave() {
   autoSaveTimeout = setTimeout(() => saveMonitorConfig(true), 500);
 }
 
+// ─── Reports Tab ───
+
+async function loadReport() {
+  const dateInput = document.getElementById('reportDate');
+  let date = dateInput.value;
+  if (!date) {
+    date = 'today';
+  }
+
+  const container = document.getElementById('reportContent');
+  container.innerHTML = '<div class="analysis-loading">⏳ Generating report...</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/report?date=${encodeURIComponent(date)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const markdown = await res.text();
+    renderReport(markdown, container);
+  } catch (err) {
+    container.innerHTML = `<div class="analysis-error">❌ Error: ${err.message}</div>`;
+  }
+}
+
+function renderReport(markdown, container) {
+  // Simple markdown-to-HTML converter for report display
+  let html = markdown
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\|.*\|/g, (line) => {
+      // Table row
+      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        const cells = line.split('|').slice(1, -1).map(c => c.trim());
+        if (cells.every(c => /^[-:]+$/.test(c))) return ''; // separator row
+        return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+      }
+      return line;
+    })
+    .replace(/\n/g, '<br>');
+
+  // Wrap table rows in table tags
+  html = html.replace(/(<tr>.*?<\/tr>)+/g, '<table class="analysis-table">$&</table>');
+
+  // Clean up empty paragraphs
+  html = html.replace(/<br><br>/g, '</p><p>').replace(/^/, '<p>').replace(/$/, '</p>');
+  html = html.replace(/<p><table/g, '<table').replace(/<\/table><\/p>/g, '</table>');
+  html = html.replace(/<p><h/g, '<h').replace(/<\/h([12])><\/p>/g, '</h$1>');
+  html = html.replace(/<p><br><\/p>/g, '');
+
+  container.innerHTML = `<div class="report-body" style="padding:20px;font-size:14px;line-height:1.6;">${html}</div>`;
+}
+
 function initSettingsAutoSave() {
   const inputs = document.querySelectorAll('#settingsTab input[type="number"], #settingsTab input[type="checkbox"]');
   inputs.forEach(input => {
@@ -1308,6 +1460,13 @@ function init() {
   loadSettings();
   loadMonitorConfig();
   initSettingsAutoSave();
+
+  // Set default report date to today
+  const dateInput = document.getElementById('reportDate');
+  if (dateInput) {
+    const today = new Date().toISOString().slice(0, 10);
+    dateInput.value = today;
+  }
 
   refreshInterval = setInterval(() => {
     fetchData(); loadDrainEvents(); loadDbSize(); loadServerInfo();

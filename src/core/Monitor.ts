@@ -3,6 +3,7 @@ import { DrainAnalyzer } from './DrainAnalyzer.js';
 import { SpikeDetector } from './SpikeDetector.js';
 import { BatteryImpactAnalyzer } from './BatteryImpactAnalyzer.js';
 import { AlertSender } from './AlertSender.js';
+import { SleepWakeDetector } from './SleepWakeDetector.js';
 import { TimeSeriesDB } from '../storage/TimeSeriesDB.js';
 import { MonitorConfig, DrainEvent, ProcessSpike, BatteryImpactEvent } from '../types/index.js';
 import { loadConfig } from '../config/ConfigManager.js';
@@ -18,6 +19,7 @@ export class Monitor {
   private spikeDetector: SpikeDetector;
   private batteryImpactAnalyzer: BatteryImpactAnalyzer;
   private alertSender: AlertSender;
+  private sleepWakeDetector: SleepWakeDetector;
   private db: TimeSeriesDB;
   private config: MonitorConfig;
   private timer: NodeJS.Timeout | null = null;
@@ -51,6 +53,12 @@ export class Monitor {
     );
     this.db = new TimeSeriesDB(this.config.dbPath);
     this.alertSender = new AlertSender(this.config.alert);
+    this.sleepWakeDetector = new SleepWakeDetector({
+      onEvent: (event) => {
+        this.db.insertSleepWakeEvent(event);
+        console.log(`[Monitor] Sleep/Wake event stored: ${event.eventType} at ${new Date(event.timestamp).toISOString()}`);
+      }
+    });
   }
 
   async start(): Promise<void> {
@@ -62,6 +70,9 @@ export class Monitor {
     console.log(`[Monitor] Retention: ${this.config.retentionDays} days or ${this.config.retentionSizeMB}MB`);
     console.log(`[Monitor] Logging: battery=${this.config.logBattery}, processes=${this.config.logProcesses}, spikes=${this.config.logSpikes}, impact=${this.config.logBatteryImpact}`);
     console.log(`[Monitor] Alert threshold: ${this.config.alert.drainThreshold}%/min`);
+
+    // Start sleep/wake detection
+    this.sleepWakeDetector.start();
 
     // Initial sample
     await this.tick();
@@ -79,6 +90,7 @@ export class Monitor {
       clearInterval(this.timer);
       this.timer = null;
     }
+    this.sleepWakeDetector.stop();
     this.db.close();
     console.log('[Monitor] Stopped');
   }
@@ -212,6 +224,7 @@ export class Monitor {
       spikeBaselines: this.spikeDetector.getBaselineStats().size,
       batteryDrainActive: this.batteryImpactAnalyzer.getCurrentDrain() !== null,
       tickCount: this.tickCount,
+      sleepWakeDetector: this.sleepWakeDetector.isActive(),
     };
   }
 }

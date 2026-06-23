@@ -123,7 +123,7 @@
 - Created `ai.openclaw.procmon.monitor.plist` — LaunchDaemon for core monitor (runs as sage, PID 53211)
 - Created `ai.openclaw.procmon.dashboard.plist` — LaunchDaemon for web dashboard (runs as sage, PID 57453, port 3456)
 - Installed at `/Library/LaunchDaemons/` with root:wheel ownership and 644 permissions
-- Resolved port conflict: old `com.mac-process-monitor.dashboard.plist` was holding port 3456, removed it
+- Resolved port conflict: old `com.process-monitor.dashboard.plist` was holding port 3456, removed it
 - Verified both services running via `launchctl list`
 - Dashboard responding with HTTP 200 on http://localhost:3456
 - Auto-start on boot confirmed
@@ -131,7 +131,7 @@
 **GitHub Sync: T6/T7 Commit**
 - Pushed T6/T7 features to GitHub (commit `f7e295a`)
 - Full 27-commit history restored after `--depth 1` goof-up
-- User's canonical copy at `/Users/deepak/code/mac-process-monitor` needs `git pull`
+- User's canonical copy at `/Users/deepak/code/process-monitor` needs `git pull`
 
 ---
 
