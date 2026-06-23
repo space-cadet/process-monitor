@@ -4,6 +4,7 @@
  */
 
 import { TimeSeriesDB } from './storage/TimeSeriesDB.js';
+import { ReportGenerator } from './core/ReportGenerator.js';
 
 interface QueryOptions {
   process?: string;
@@ -15,6 +16,8 @@ interface QueryOptions {
   drainEvent?: string;
   spikes?: boolean;
   battery?: boolean;
+  report?: string; // 'today' or 'YYYY-MM-DD'
+  output?: string; // file path for report output
 }
 
 function parseArgs(): QueryOptions {
@@ -50,10 +53,13 @@ function parseArgs(): QueryOptions {
       case '--battery':
         opts.battery = true;
         break;
-      case '--help':
-      case '-h':
-        printHelp();
-        process.exit(0);
+      case '--report':
+        opts.report = args[++i];
+        break;
+      case '--output':
+      case '-o':
+        opts.output = args[++i];
+        break;
     }
   }
 
@@ -89,6 +95,8 @@ Options:
       --drain-event <id>  Show processes during a specific drain event
       --spikes            Show recent process spikes
       --battery           Show battery impact rankings
+      --report <date>       Generate daily battery report (today or YYYY-MM-DD)
+  -o, --output <file>     Write report to file instead of stdout
   -h, --help              Show this help
 
 Examples:
@@ -97,6 +105,8 @@ Examples:
   npx tsx src/query.ts --top cpu --limit 5 --since 5m
   npx tsx src/query.ts --spikes --since 1h
   npx tsx src/query.ts --battery --limit 10
+  npx tsx src/query.ts --report today
+  npx tsx src/query.ts --report 2026-06-22 --output report.md
   npx tsx src/query.ts --process Chrome --since 1h --csv > chrome.csv
 `);
 }
@@ -309,6 +319,16 @@ async function main(): Promise<void> {
       }
     } else if (opts.battery) {
       printBatteryRankings(db, opts.limit);
+    } else if (opts.report) {
+      const generator = new ReportGenerator(db);
+      const report = generator.generateReport(opts.report);
+      if (opts.output) {
+        const fs = require('fs');
+        fs.writeFileSync(opts.output, report, 'utf-8');
+        console.log(`Report saved to ${opts.output}`);
+      } else {
+        console.log(report);
+      }
     } else if (opts.process) {
       const cutoff = Date.now() - opts.since * 60000;
       const rows = db.getProcessHistory(opts.process, cutoff);
