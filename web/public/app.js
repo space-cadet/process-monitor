@@ -21,6 +21,8 @@ function switchMainTab(tab) {
     loadQuickStats();
   } else if (tab === 'sleep') {
     loadSleepWakeEvents(7);
+  } else if (tab === 'devices') {
+    loadDevices();
   }
 }
 
@@ -527,6 +529,58 @@ function renderSleepWakeEvents(events) {
         <div class="sleep-cycle-summary">
           ${pair.isCharging ? '⚡ Charging' : '🔋 On battery'} • 
           ${pair.drain > 0 ? `${pair.drain}% lost during sleep` : 'No drain detected'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Device Functions ───
+
+async function loadDevices() {
+  try {
+    const res = await fetch(`${API_BASE}/api/devices`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderDevices(data.devices || []);
+  } catch (err) {
+    console.error('Device fetch error:', err);
+    document.getElementById('deviceGrid').innerHTML =
+      `<div style="padding: 20px; color: var(--text-dim); text-align: center;">Error: ${err.message}</div>`;
+  }
+}
+
+function renderDevices(devices) {
+  const container = document.getElementById('deviceGrid');
+  if (!devices || devices.length === 0) {
+    container.innerHTML = `<div style="padding: 20px; color: var(--text-dim); text-align: center;">No devices registered yet</div>`;
+    return;
+  }
+
+  container.innerHTML = devices.map(d => {
+    const lastSeen = new Date(d.lastSeen).toLocaleString();
+    const registered = new Date(d.registeredAt).toLocaleDateString();
+    const statusColor = d.isOnline ? 'var(--accent-ok)' : 'var(--text-dim)';
+    const statusIcon = d.isOnline ? '🟢' : '⚪';
+    const platformIcon = d.platform === 'darwin' ? '🍎' : d.platform === 'linux' ? '🐧' : d.platform === 'win32' ? '🪟' : '🖥️';
+
+    return `
+      <div class="device-card" style="border-left: 3px solid ${statusColor};">
+        <div class="device-card-header">
+          <div class="device-card-icon">${platformIcon}</div>
+          <div class="device-card-info">
+            <div class="device-card-name">${d.name}</div>
+            <div class="device-card-hostname">${d.hostname}</div>
+          </div>
+          <div class="device-card-status" style="color: ${statusColor};">${statusIcon} ${d.isOnline ? 'Online' : 'Offline'}</div>
+        </div>
+        <div class="device-card-meta">
+          <span>${d.platform} • ${d.arch}</span>
+          <span>v${d.version || '?'}</span>
+        </div>
+        <div class="device-card-footer">
+          <span>Last seen: ${lastSeen}</span>
+          <span>Registered: ${registered}</span>
         </div>
       </div>
     `;

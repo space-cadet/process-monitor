@@ -35,6 +35,9 @@
       <button class="main-tab" data-tab="analysis" onclick="switchMainTab('analysis')">
         <span class="tab-icon">🔍</span> Analysis
       </button>
+      <button class="main-tab" data-tab="devices" onclick="switchMainTab('devices')">
+        <span class="tab-icon">🖥️</span> Devices
+      </button>
       <button class="main-tab" data-tab="settings" onclick="switchMainTab('settings')">
         <span class="tab-icon">⚙️</span> Settings
       </button>
@@ -191,6 +194,21 @@
         </div>
         <div class="profile-list" id="profileList">
           <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading profiles...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── DEVICES TAB ─── -->
+    <div class="tab-content" id="devicesTab">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="--panel-accent: var(--accent-ok);">🖥️ Registered Devices</div>
+          <div class="panel-actions">
+            <button class="panel-btn" onclick="loadDevices()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="device-grid" id="deviceGrid">
+          <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading devices...</div>
         </div>
       </div>
     </div>

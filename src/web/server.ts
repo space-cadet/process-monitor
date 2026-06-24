@@ -1,5 +1,6 @@
 import { TimeSeriesDB } from '../storage/TimeSeriesDB.js';
 import { SystemCollector } from '../core/SystemCollector.js';
+import { DeviceRegistry } from '../core/DeviceRegistry.js';
 import { loadConfig, saveConfig } from '../config/ConfigManager.js';
 import { createServer } from 'http';
 import { readFileSync, existsSync } from 'fs';
@@ -13,6 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dbPath = join(process.env.HOME || '', '.procmon', 'monitor.db');
 const db = new TimeSeriesDB(dbPath);
 const collector = new SystemCollector();
+const deviceRegistry = new DeviceRegistry();
 
 // MIME types
 const mimeTypes: Record<string, string> = {
@@ -537,6 +539,97 @@ const server = createServer(async (req, res) => {
       });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, message: 'Monitor restart initiated. It will be back online in ~5 seconds.' }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  // ─── Device Registry Endpoints ───
+  if (pathname === '/api/devices/register' && req.method === 'POST') {
+    try {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          const device = deviceRegistry.register({
+            id: payload.id || `device_${Date.now()}`,
+            name: payload.name || 'Unknown Device',
+            hostname: payload.hostname || 'unknown',
+            platform: payload.platform || process.platform,
+            arch: payload.arch || process.arch,
+            ip: payload.ip || req.socket.remoteAddress,
+            version: payload.version,
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, device }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/devices/heartbeat' && req.method === 'POST') {
+    try {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const { id } = JSON.parse(body);
+          const device = deviceRegistry.heartbeat(id);
+          if (device) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, device }));
+          } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Device not found' }));
+          }
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/devices' && req.method === 'GET') {
+    try {
+      const devices = deviceRegistry.list().map(d => ({
+        ...d,
+        isOnline: Date.now() - d.lastSeen < 5 * 60 * 1000, // 5 min threshold
+      }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ devices }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/devices' && req.method === 'DELETE') {
+    try {
+      const id = url.searchParams.get('id');
+      if (!id) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing id' }));
+        return;
+      }
+      const removed = deviceRegistry.remove(id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: removed }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));

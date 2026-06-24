@@ -1471,10 +1471,89 @@ footer {
   min-width: 0;
 }
 
-/* Sleep/Wake Timeline Styles */
-.sleep-timeline {
+/* ─── Device Cards ─── */
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
   padding: 16px;
 }
+
+.device-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.device-card:hover {
+  background: rgba(255,255,255,0.03);
+  transform: translateY(-1px);
+}
+
+.device-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.device-card-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border-radius: 10px;
+}
+
+.device-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.device-card-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-card-hostname {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.device-card-status {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.device-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+}
+
+.device-card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 
 .sleep-cycle {
   background: var(--surface-raised);
