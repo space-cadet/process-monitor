@@ -1,42 +1,97 @@
 # Active Context
 
-*Last Updated: 2026-06-22 18:12 IST*
+*Last Updated: 2026-06-24*
 
 ## Current Tasks
 
-### 🔥 T4: Dashboard Extended — Disk/Network Monitoring + Auto-Save + Drain Settings (Completed)
-**Completed:** 2026-06-22. Fourth major extension to T4.
+### ✅ T17: Multi-Device Dashboard V1 — Complete
+**Completed:** 2026-06-24. Full V1 implementation.
 
-**What was added:**
-- **Drain Detection Settings**: Adjustable via Settings panel (threshold 0.5%/min, min duration 1min, cooldown 5min) with more sensitive defaults
-- **Client-Side Query Caching**: 5-minute TTL cache for analysis preset queries (prevents re-running expensive 7-day SQL)
-- **Auto-Save Settings**: Debounced 500ms auto-save on any settings change; transient "💾 Saved" toast
-- **Disk Monitoring**: KPI card (usage %), chart tab (I/O rate from cumulative counter deltas), analysis preset (daily usage trend)
-- **Network Monitoring**: KPI card (live RX/TX throughput), chart tab (KB/s rate from counter deltas), analysis preset (daily RX/TX volume)
-- **Mobile Fixes**: Chart tabs horizontally scrollable on narrow screens
-- **Bug Fixes**: 404 on disk/network trend endpoints (server restart), y-axis auto-scaling with adaptive units, live network rate computation
+**What was built:**
+- **Device Identity**: `DeviceIdentity.ts` — UUIDv4 `did`, persisted to `~/.procmon/config/device.json`
+- **Device Registry**: `DeviceRegistry.ts` — JSON-based peer registry with CRUD + heartbeat
+- **QR Pairing**: `/api/qr` returns SVG QR code with identity + all network endpoints
+- **Network Auto-Detection**: `getTailscaleIP()` + `getLanIP()` + `getAllHosts()` — advertises LAN, Tailscale, and localhost
+- **Peer Polling**: Dashboard polls registered devices every 30s via `fetch()` to their `/api/metrics` endpoint
+- **Devices Tab**: Online/offline status cards, battery sparklines, "Show QR" button
+- **Identity Endpoint**: `/api/identity` returns structured endpoints for all three network modes
 
-**Files Modified:**
-- `src/config/ConfigManager.ts` — sensitive drain defaults
-- `src/storage/TimeSeriesDB.ts` — added disk/network columns to `getSnapshotHistory()`
-- `src/web/server.ts` — `/api/analysis/disk-trend`, `/api/analysis/network-trend`
-- `web/public/index.html` — new KPI cards, chart tabs, preset buttons, drain settings inputs
-- `web/public/app.js` — auto-save, caching, rate computation, new renderers
-- `web/public/styles.css` — disk/network accent colors, mobile chart tabs
+**Files:**
+- `src/core/DeviceIdentity.ts` — new
+- `src/core/DeviceRegistry.ts` — new
+- `src/web/server.ts` — `/api/identity`, `/api/qr`, `/api/metrics`, `/api/devices/*`
+- `web/public/app.js` — peer polling, device cards, QR modal
+- `web/public/styles.css` — device grid, QR modal styles
+
+**Limitations:**
+- Android can't run Tailscale + NordVPN simultaneously (VPN slot conflict)
+- LAN mode works for same-network monitoring
+- Tailscale mode works for cross-network (when both devices have Tailscale)
+- No relay server for Android+NordVPN case (T18 proposed)
 
 ---
 
-### 🔥 T17: Multi-Device Dashboard — Syncthing-Inspired Architecture (Planning Complete)
-**Created:** 2026-06-22. Design complete, implementation pending.
+### ✅ T15: Energy API — Complete
+**Completed:** 2026-06-24.
 
-See `memory-bank/tasks/T17.md` for full spec.
+- `EnergyCollector.ts` — `powermetrics` integration for per-process energy (mJ)
+- `energy_mj` field added to `process_samples` table
+- Energy displayed in process cards
+- **Note**: `powermetrics` requires `sudo` — energy data only available when running with privileges
+
+---
+
+### ✅ T13: Process Tree View — Complete
+**Completed:** 2026-06-24.
+
+- `/api/process-tree` endpoint — hierarchical tree from `systeminformation.processes()`
+- Tree/List toggle in Processes tab
+- Recursive rendering with CPU/memory per node
+
+---
+
+### ✅ T12: Data Export — Complete
+**Completed:** 2026-06-24.
+
+- `/api/export/csv` and `/api/export/json` — date range picker (`from`/`to` ISO params)
+- Export UI in Reports tab — dropdown for format + date range
+- CSV includes snapshots, battery, processes
+- JSON returns structured data
+
+---
+
+### ✅ T10: Reports — Complete
+**Completed:** 2026-06-24.
+
+- `ReportGenerator.ts` — daily battery health report with scoring
+- `--report` CLI flag (`--output=text|json`)
+- Reports tab in dashboard — health score, drain events, top culprits, insights, export UI
+- Auto-generates at 22:00 daily via cron
+
+---
+
+### ✅ T9: Sleep/Wake — Complete
+**Completed:** 2026-06-24.
+
+- `sleep_wake_events` table
+- `/api/sleep-wake-events` endpoint
+- Sleep tab in dashboard with timeline
+
+---
+
+### ✅ T4: Dashboard Extended — v4 Complete (2026-06-22)
+Already documented in previous version.
 
 ---
 
 ## Completed Tasks (Recent)
-- **T4-ext2: Dashboard v4** (2026-06-22) — Disk/network KPIs + charts, auto-save, drain settings, query caching, mobile fixes
-- **T17-design: Multi-Device Dashboard Architecture** (2026-06-22) — Syncthing-inspired discovery, QR pairing, 3-layer model
-- **T4-ext: Dashboard v3** (2026-06-19) — Analysis tab with 6 preset queries, Settings tab with restart/cleanup
+- **T17: Multi-Device Dashboard V1** (2026-06-24) — Identity, QR pairing, peer polling, Tailscale/LAN/localhost
+- **T15: Energy API** (2026-06-24) — `powermetrics` integration, `energy_mj` field
+- **T13: Process Tree View** (2026-06-24) — `/api/process-tree`, tree/list toggle
+- **T12: Data Export** (2026-06-24) — CSV/JSON endpoints, date range picker
+- **T10: Reports** (2026-06-24) — `ReportGenerator.ts`, `--report` CLI, dashboard tab
+- **T9: Sleep/Wake** (2026-06-24) — `sleep_wake_events` table, API endpoint, dashboard tab
+- **T4-ext2: Dashboard v4** (2026-06-22) — Disk/network KPIs + charts, auto-save, drain settings
 - **T2: Telegram/OpenClaw Alert Integration** (2026-06-18)
 - **T8: LaunchDaemon Installation** (2026-06-15)
 - **T6: Spike Detection** (2026-06-09)
@@ -45,16 +100,17 @@ See `memory-bank/tasks/T17.md` for full spec.
 - **T3: Query Interface** (2026-06-10)
 
 ## Next Steps
-- **T17: Multi-Device Dashboard V1** — Identity endpoint, QR display, observer polling (HIGH priority)
-- **T9: Sleep/Wake Correlation** — HIGH priority, biggest blind spot
-- **T10: Automated Daily Report** — Builds on analysis endpoints already in place
-- **T16: Native Notifications** — Replace osascript with UNUserNotificationCenter
+- **T11: Natural Language Search** — "Show me Chrome yesterday >30% CPU"
+- **T5: Swift Menubar App** — Native macOS experience
+- **T14: Anomaly Detection** — Statistical outliers beyond thresholds
+- **T18: Relay Server** — For Android+NordVPN cross-network monitoring
 
 ## System Status
-- **Battery**: 65%, plugged in
+- **Battery**: 100%, plugged in
 - **Memory**: ~97% used (normal for this Mac)
 - **DB**: `~/.procmon/monitor.db` — ~90+ MB, 17K+ snapshots, 750K+ process samples
-- **Dashboard**: Running on http://localhost:3456 with 5 chart tabs (Battery, CPU, Memory, Disk, Network)
+- **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
 - **Monitor**: Running via LaunchDaemon + cron check every 10 minutes
-- **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 27+ commits)
-- **Git Status**: Uncommitted changes from T4 v4 work
+- **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
+- **Git Status**: All changes committed
+- **Network**: LAN `192.168.1.42`, Tailscale `100.92.54.38`

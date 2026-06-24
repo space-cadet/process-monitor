@@ -2,39 +2,52 @@
 
 *Last Updated: 2026-06-19 00:52 IST*
 
-## Project Status: T1-T8 Complete + T4 Extended; T9-T16 Pending
+## Project Status: T1-T17 Complete; T5 (Swift), T11 (NL Search), T14 (ML) Remaining
 
 ### What Works
 
 - **T1 — TypeScript Core Monitor**: ✅ COMPLETE
 - **T2 — Telegram/OpenClaw Alert Integration**: ✅ COMPLETE (2026-06-18)
-  - `AlertSender.ts`: Telegram Bot API + macOS osascript notifications
-  - Drain, spike, and battery impact alerts all wired
-  - Per-event cooldowns prevent spam
 - **T3 — Per-Process Query Interface**: ✅ COMPLETE
-- **T4 — Web Dashboard**: ✅ COMPLETE (Extended 2026-06-19, Extended again 2026-06-22)
-  - v1: Basic HTML dashboard (2026-05-18)
-  - v2: Full rebuild with charts, profiles, 12 API endpoints (2026-06-10)
-  - v3: Analysis tab with 6 preset SQL queries, Settings tab with restart/cleanup (2026-06-19)
-  - v4: **Disk/Network KPIs + charts**, auto-save settings, drain detection settings, query caching, mobile fixes (2026-06-22)
-  - Dashboard auto-start via cron (monitors both monitor + dashboard processes)
+- **T4 — Web Dashboard**: ✅ COMPLETE (v4, 2026-06-22)
 - **T6 — Process Spike Detection**: ✅ COMPLETE
 - **T7 — Battery Impact Correlation**: ✅ COMPLETE
 - **T8 — LaunchDaemon Installation**: ✅ COMPLETE
+- **T9 — Sleep/Wake Correlation Tracking**: ✅ COMPLETE (2026-06-24)
+  - `sleep_wake_events` table + `/api/sleep-wake-events` endpoint
+  - Sleep tab in dashboard with timeline
+- **T10 — "What Drained My Battery?" Report**: ✅ COMPLETE (2026-06-24)
+  - `ReportGenerator.ts` with daily battery health scoring
+  - `--report` CLI flag with `--output` format (text/json)
+  - Reports tab in dashboard with insights, drain events, top culprits
+  - Auto-generates at 22:00 daily via cron
+- **T12 — Data Export (CSV/JSON)**: ✅ COMPLETE (2026-06-24)
+  - `/api/export/csv` and `/api/export/json` with date range picker
+  - Export UI in Reports tab
+- **T13 — Process Tree View**: ✅ COMPLETE (2026-06-24)
+  - `/api/process-tree` endpoint returns hierarchical tree
+  - Tree/List toggle in Processes tab
+- **T15 — macOS Energy API Integration**: ✅ COMPLETE (2026-06-24)
+  - `EnergyCollector.ts` — `powermetrics` integration for per-process energy (mJ)
+  - `energy_mj` field in DB, shown in process cards
+- **T17 — Multi-Device Dashboard**: ✅ COMPLETE V1 (2026-06-24)
+  - `DeviceIdentity.ts` — UUIDv4 device identity, persisted to `~/.procmon/config/device.json`
+  - `DeviceRegistry.ts` — JSON-based device registry with peer discovery
+  - `/api/identity` — returns device info + all network endpoints (localhost, LAN, Tailscale)
+  - `/api/qr` — SVG QR code for pairing
+  - `/api/metrics` — peer metrics endpoint for polling
+  - Peer polling in dashboard — fetches metrics from registered devices every 30s
+  - Devices tab with online/offline status cards
+  - Network auto-detection: LAN (`192.168.x`), Tailscale (`100.x`), localhost
 
-### What's Left to Build (Prioritized)
+### What's Left to Build
 
 | Priority | Task | Description | Est. Effort |
 |----------|------|-------------|-------------|
-| 🔥 HIGH | T9 | Sleep/Wake Correlation Tracking | 2-3h |
-| 🔥 HIGH | T10 | "What Drained My Battery?" Report | 3-4h |
-| ⚡ MEDIUM | T16 | Native macOS Notifications (UNUserNotificationCenter) | 2h |
-| ⚡ MEDIUM | T13 | Process Tree View (Hierarchical) | 2-3h |
 | ⚡ MEDIUM | T11 | Natural Language Search / Query Box | 4-5h |
-| ⚡ MEDIUM | T12 | Data Export (CSV / Parquet / Grafana) | 2-3h |
-| ⚡ MEDIUM | T15 | macOS Energy API Integration | 3-5h |
 | 🔮 LOW | T14 | Anomaly Detection with ML | 6-8h |
 | 🔮 LOW | T5 | Swift Menubar App | 8-12h |
+| 🔮 LOW | T18 | Relay Server for Cross-Network (Android+NordVPN) | 3-4h |
 
 ### Technical Debt (Resolved)
 
@@ -51,6 +64,8 @@
 - Battery impact data needs longer runtime on battery power (currently 0 events — needs 2% drop over 2+ min while not charging)
 - Telegram alerts not tested with real bot token (only verified code path works)
 - **Disk/Network chart y-axis**: Auto-scales correctly now, but very low activity periods show flat lines (expected — counters don't change when idle)
+- **T17 limitation**: Android can't run Tailscale + NordVPN simultaneously; LAN-only works for same-network monitoring
+- **T17 limitation**: No relay server for cross-network VPN devices; direct P2P only
 
 ### Timeline
 
@@ -69,7 +84,10 @@
 | 2026-06-18 | Tasks T9-T16 created and prioritized | ✅ |
 | 2026-06-19 | T4-ext: Analysis + Settings tabs, 6 SQL queries, export | ✅ |
 | 2026-06-22 | T4-ext2: Disk/Network monitoring, auto-save, drain settings | ✅ |
-| *Next* | T9: Sleep/Wake correlation or T10: Reports or T17: Multi-device | ⬜ |
+| 2026-06-24 | T9-T10: Sleep/wake + Reports (ReportGenerator, CLI, dashboard) | ✅ |
+| 2026-06-24 | T12-T13-T15: Data export + Process tree + Energy API | ✅ |
+| 2026-06-24 | T17: Multi-Device V1 — identity, QR, peer polling, Tailscale | ✅ |
+| *Next* | T11: Natural language search or T5: Swift menubar | ⬜ |
 
 ### Current Blockers
 
