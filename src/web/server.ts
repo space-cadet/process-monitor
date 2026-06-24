@@ -805,8 +805,8 @@ const server = createServer(async (req, res) => {
     try {
       // Spawn monitor restart in background
       const { exec } = require('child_process');
-      exec('pkill -f "tsx.*src/main.ts" && sleep 2 && cd /Users/sage/.openclaw/workspace/code/process-monitor && bash run.sh > logs/monitor.log 2> logs/monitor-error.log &', {
-        env: { ...process.env, HOME: '/Users/sage' }
+      exec(`pkill -f "tsx.*src/main.ts" && sleep 2 && cd "${process.cwd()}" && nohup npx tsx src/main.ts > logs/monitor.log 2> logs/monitor-error.log &`, {
+        env: { ...process.env, HOME: process.env.HOME || '/tmp' }
       });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, message: 'Monitor restart initiated. It will be back online in ~5 seconds.' }));

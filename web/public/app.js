@@ -970,17 +970,25 @@ async function fetchData() {
 
 function updateDashboard(data) {
   const battery = data.battery;
-  document.getElementById('batteryValue').innerHTML = `${Math.round(battery.percent)}<span>%</span>`;
-  document.getElementById('batteryFill').style.width = `${battery.percent}%`;
+  const hasBattery = battery.percent > 0 || (!battery.isPlugged && battery.percent === 0);
+  if (hasBattery) {
+    document.getElementById('batteryValue').innerHTML = `${Math.round(battery.percent)}<span>%</span>`;
+    document.getElementById('batteryFill').style.width = `${battery.percent}%`;
+  } else {
+    document.getElementById('batteryValue').innerHTML = `—<span style="font-size:14px">N/A</span>`;
+    document.getElementById('batteryFill').style.width = '0%';
+  }
 
   let statusText = 'On battery';
-  if (battery.isCharging) statusText = 'Charging';
+  if (!hasBattery) statusText = 'No battery';
+  else if (battery.isCharging) statusText = 'Charging';
   else if (battery.isPlugged) statusText = 'Plugged In';
   document.getElementById('batteryStatus').textContent = statusText;
 
   const cycles = battery.cycleCount != null ? battery.cycleCount : '--';
   let timeRem = '--';
-  if (battery.isPlugged) timeRem = 'AC power';
+  if (!hasBattery) timeRem = 'Desktop / Server';
+  else if (battery.isPlugged) timeRem = 'AC power';
   else if (battery.timeRemaining != null && battery.timeRemaining >= 0 && battery.timeRemaining < 10000) {
     timeRem = Math.round(battery.timeRemaining / 60) + 'h remaining';
   }

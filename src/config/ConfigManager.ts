@@ -30,7 +30,7 @@ export const DEFAULT_CONFIG: MonitorConfig = {
       cooldownSeconds: 60,
     },
     watchedProcesses: [],
-    ignoredProcesses: ['kernel_task', 'WindowServer', 'mds', 'mdworker'],
+    ignoredProcesses: ['kernel_task', 'WindowServer', 'mds', 'mdworker', 'kworker', 'ksoftirqd', 'rcu_preempt', 'migration', 'watchdogd', 'cpuhp', 'khugepaged', 'kcompactd0', 'oom_reaper'],
   },
   batteryImpact: {
     enabled: true,
