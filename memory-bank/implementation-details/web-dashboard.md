@@ -1,8 +1,8 @@
 # Mac Process Monitor — Web Dashboard Implementation
 
 *Project*: process-monitor  
-*Component*: Web Dashboard (T4)  
-*Last Updated*: 2026-06-22
+*Component*: Web Dashboard (T4, T13, T17)  
+*Last Updated*: 2026-06-24
 
 ## Overview
 
@@ -69,6 +69,11 @@ Real-time web dashboard for monitoring macOS system metrics. Serves from a light
 | `POST /api/restart` | POST | Process spawn | Restarts monitor process |
 | `GET /api/db-size` | GET | SQLite `PRAGMA page_count` | DB size in MB, table counts |
 | `GET /api/server-info` | GET | Runtime | Version, uptime, node version, platform |
+| `GET /api/process-tree` | GET | Live collection | Hierarchical process tree with CPU/memory per node |
+| `GET /api/sleep-wake-events?limit=50` | GET | SQLite DB | Sleep/wake events with duration |
+| `GET /api/export/csv?from=...&to=...` | GET | SQLite DB | CSV export of snapshots, battery, processes |
+| `GET /api/export/json?from=...&to=...` | GET | SQLite DB | JSON export of structured data |
+| `POST /api/query` | POST | SQLite DB | Natural language query (T11 — future) |
 
 #### Analysis Endpoints (8 presets)
 
@@ -192,6 +197,57 @@ const netRate = netRxDelta / 1024 / (deltaMs / 1000);  // KB/s
 | Memory | **Yes** | **MB value** + visual bar |
 
 **Clickable Headers**: Click any column header to sort by that column. Click again to reverse order (asc/desc). Visual indicator shows ▼ (desc) or ▲ (asc).
+
+### Process Tree View (T13)
+
+**Toggle**: List/Tree switch in Processes panel. Tree uses `systeminformation.processes()` hierarchical data.
+
+**Visual Design**:
+- Split path display: directory (dimmed gray) + basename (bright white)
+- Process type badges: `system` (purple), `daemon` (orange), `user` (cyan)
+- Parent rows with children get subtle background highlight
+- Gradient left border on child containers for tree structure
+- Toggle buttons: 22×22px with hover state
+- CPU >50% highlighted in red
+
+**Mobile Layout** (deferred):
+- Attempted CSS `max-content` for auto-sized name column — not working as expected
+- CSS cache-bumped to `styles.css?v=2`
+- To revisit: proper horizontal scroll without truncation
+
+### Search Bar (T11 precursor)
+
+**Location**: Panel header next to List/Tree toggle buttons.
+
+**Features**:
+- Works for both List and Tree views
+- Searches process name + PID
+- Tree view: shows matching nodes + their ancestor chain (tree structure preserved)
+- List view: filters table rows
+- Input: `🔍 Filter processes...` placeholder
+
+**Implementation**:
+```javascript
+function processMatchesSearch(p) {
+  if (!currentSearchFilter) return true;
+  const search = currentSearchFilter;
+  return (p.name && p.name.toLowerCase().includes(search)) ||
+         (p.pid && String(p.pid).includes(search));
+}
+
+function filterTreeNodes(nodes) {
+  if (!currentSearchFilter) return nodes;
+  const result = [];
+  for (const node of nodes) {
+    const children = node.children ? filterTreeNodes(node.children) : [];
+    const matches = processMatchesSearch(node);
+    if (matches || children.length > 0) {
+      result.push({ ...node, children });
+    }
+  }
+  return result;
+}
+```
 
 ### Auto-Save Settings (v4)
 
@@ -365,8 +421,15 @@ sudo launchctl load /Library/LaunchDaemons/ai.openclaw.procmon.dashboard.plist
 - [ ] Clicking same preset twice uses cache (instant, no loading state)
 - [ ] Settings tab: change a value, wait 500ms, "Saved" toast appears
 - [ ] Restart monitor button works (with confirmation)
+- [ ] Tree/List toggle works in Processes tab
+- [ ] Tree view shows hierarchical structure with toggle buttons
+- [ ] Search bar filters both list and tree views
+- [ ] Search in tree view shows matching nodes + ancestor chain
+- [ ] Process type badges visible (system/daemon/user)
 - [ ] Table scrolls horizontally on mobile
 - [ ] Chart tabs scroll horizontally on mobile (<640px)
+- [ ] Export CSV works with date range
+- [ ] Export JSON works with date range
 
 ### Debug
 
@@ -387,6 +450,12 @@ fetch('/api/analysis/network-trend').then(r => r.json()).then(console.log)
 | `web/public/app.js` | Frontend logic | ~600+ |
 | `web/public/styles.css` | Dark theme styling | ~600+ |
 | `check-and-start.sh` | Cron health check + auto-restart | ~40 |
+| `src/core/QueryParser.ts` | Natural language → SQL (T11 — pending) | — |
+| `src/core/DeviceIdentity.ts` | UUIDv4 device identity (T17) | ~80 |
+| `src/core/DeviceRegistry.ts` | Peer registry with CRUD (T17) | ~100 |
+| `src/core/EnergyCollector.ts` | `powermetrics` energy collection (T15) | ~60 |
+| `src/core/ReportGenerator.ts` | Daily battery health reports (T10) | ~150 |
+| `src/core/SleepWakeDetector.ts` | Sleep/wake event detection (T9) | ~80 |
 
 ---
 

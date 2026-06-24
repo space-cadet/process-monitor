@@ -47,6 +47,8 @@
 - `/api/process-tree` endpoint — hierarchical tree from `systeminformation.processes()`
 - Tree/List toggle in Processes tab
 - Recursive rendering with CPU/memory per node
+- **UI improvements (2026-06-24):** Split path display (directory dimmed, basename bright), process type badges (system/daemon/user), bigger toggle buttons (22×22px), parent row highlight, gradient tree guide lines, search bar (works for both list/tree)
+- **Mobile layout:** Deferred — attempted multiple CSS approaches for name column sizing without success. CSS cache-bumped to `styles.css?v=2`. To revisit later.
 
 ---
 
@@ -84,6 +86,21 @@ Already documented in previous version.
 
 ---
 
+- **T11a** (`workspace-94r`): Time Expression Parser
+- **T11b** (`workspace-st0`): Query Tokenizer
+- **T11c** (`workspace-ev0`): SQL Generator (depends on a+b)
+- **T11d** (`workspace-um0`): Search API + Dashboard UI (depends on c)
+
+See workspace beads queue for full details.
+
+---
+
+### 🛠️ Config Fixes (2026-06-24)
+- **OpenClaw compaction:** `reserveTokensFloor` 48000 → 12000. Triggers compaction at ~188k for 200k models instead of ~152k.
+- **Git Guardian:** Updated `repo-manifest.json` — `mac-process-monitor` renamed to `process-monitor`
+
+---
+
 ## Completed Tasks (Recent)
 - **T17: Multi-Device Dashboard V1** (2026-06-24) — Identity, QR pairing, peer polling, Tailscale/LAN/localhost
 - **T15: Energy API** (2026-06-24) — `powermetrics` integration, `energy_mj` field
@@ -100,10 +117,11 @@ Already documented in previous version.
 - **T3: Query Interface** (2026-06-10)
 
 ## Next Steps
-- **T11: Natural Language Search** — "Show me Chrome yesterday >30% CPU"
-- **T5: Swift Menubar App** — Native macOS experience
-- **T14: Anomaly Detection** — Statistical outliers beyond thresholds
-- **T18: Relay Server** — For Android+NordVPN cross-network monitoring
+- **T11a-d:** Natural Language Search subtasks (in beads queue)
+- **T5:** Swift Menubar App — Native macOS experience
+- **T14:** Anomaly Detection — Statistical outliers beyond thresholds
+- **T18:** Relay Server — For Android+NordVPN cross-network monitoring
+- **Mobile tree view:** Return to CSS layout fix later
 
 ## System Status
 - **Battery**: 100%, plugged in

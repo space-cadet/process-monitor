@@ -40,7 +40,7 @@ Task tracking for the process-monitor project. Tasks are ordered by priority (HI
 
 | ID | Title | Why | Est. Effort | Dependencies |
 |----|-------|-----|-------------|--------------|
-| T11 | Natural Language Search / Query Box | "Show me Chrome yesterday >30% CPU" | 4-5h | None |
+| T11 | Natural Language Search / Query Box | ⬜ PENDING — decomposed into 4 beads subtasks (T11a-d). See beads queue for details. | 4-5h total | None |
 
 ### 🔮 LOW Priority / Future
 

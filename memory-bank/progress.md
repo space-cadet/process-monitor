@@ -27,6 +27,9 @@
 - **T13 — Process Tree View**: ✅ COMPLETE (2026-06-24)
   - `/api/process-tree` endpoint returns hierarchical tree
   - Tree/List toggle in Processes tab
+  - **UI improvements (2026-06-24):** Split path display (dir dimmed + basename bright), type badges (system/daemon/user), bigger toggles, parent row highlight, gradient tree guide lines
+  - **Search bar:** Added filter input for both list and tree views (searches name + PID)
+  - **Mobile layout:** Deferred — CSS `max-content` approach for auto-sized name column not working as expected. To revisit.
 - **T15 — macOS Energy API Integration**: ✅ COMPLETE (2026-06-24)
   - `EnergyCollector.ts` — `powermetrics` integration for per-process energy (mJ)
   - `energy_mj` field in DB, shown in process cards
@@ -44,7 +47,7 @@
 
 | Priority | Task | Description | Est. Effort |
 |----------|------|-------------|-------------|
-| ⚡ MEDIUM | T11 | Natural Language Search / Query Box | 4-5h |
+| ⚡ MEDIUM | T11a-d | Natural Language Search — decomposed into 4 beads subtasks (see workspace beads queue) | 4-5h total |
 | 🔮 LOW | T14 | Anomaly Detection with ML | 6-8h |
 | 🔮 LOW | T5 | Swift Menubar App | 8-12h |
 | 🔮 LOW | T18 | Relay Server for Cross-Network (Android+NordVPN) | 3-4h |
