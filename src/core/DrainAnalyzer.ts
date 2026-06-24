@@ -91,14 +91,17 @@ export class DrainAnalyzer {
       }
     }
 
-    // Convert to ProcessSnapshot with average CPU
-    const averaged = Array.from(processCpuMap.entries()).map(([pid, data]) => ({
+    const averaged: ProcessSnapshot[] = Array.from(processCpuMap.entries()).map(([pid, data]) => ({
       pid,
       name: data.name,
       cpuPercent: Math.round((data.totalCpu / data.count) * 100) / 100,
+      cpuUserPercent: 0,
+      cpuSystemPercent: 0,
       memoryPercent: 0, // Not aggregated here
       rssMB: 0,
       vmsMB: 0,
+      nice: 0,
+      state: 'unknown',
       cmdline: data.cmdline,
     }));
 

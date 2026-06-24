@@ -237,7 +237,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3456;
+const PORT = parseInt(process.env.PORT || '3456', 10);
 const HOST = '0.0.0.0';
 
 // ─── Start Everything ───

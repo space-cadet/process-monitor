@@ -283,7 +283,7 @@ const server = createServer(async (req, res) => {
         LIMIT 30
       `).all();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows.map(r => ({
+      res.end(JSON.stringify(rows.map((r: any) => ({
         date: r.date,
         avgDrainRate: null,
         avgBattery: r.avgBattery,
@@ -334,7 +334,7 @@ const server = createServer(async (req, res) => {
         LIMIT 20
       `).all();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows.map(r => ({
+      res.end(JSON.stringify(rows.map((r: any) => ({
         name: r.name,
         cpuSpikes: r.cpuSpikes,
         memSpikes: r.memSpikes,
@@ -392,7 +392,7 @@ const server = createServer(async (req, res) => {
         ORDER BY hour
       `).all();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows.map(r => ({
+      res.end(JSON.stringify(rows.map((r: any) => ({
         hour: r.hour,
         avgCpu: r.avgCpu,
         avgBattery: r.avgBattery,
@@ -428,7 +428,7 @@ const server = createServer(async (req, res) => {
         LIMIT 20
       `).all();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows.map(r => ({
+      res.end(JSON.stringify(rows.map((r: any) => ({
         name: r.name,
         avgCpu: r.avgCpu,
         peakCpu: r.peakCpu,
@@ -458,7 +458,7 @@ const server = createServer(async (req, res) => {
         LIMIT 30
       `).all();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows.map(r => ({
+      res.end(JSON.stringify(rows.map((r: any) => ({
         date: r.date,
         avgDisk: r.avgDisk,
         minDisk: r.minDisk,
@@ -488,7 +488,7 @@ const server = createServer(async (req, res) => {
         LIMIT 30
       `).all();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(rows.map(r => ({
+      res.end(JSON.stringify(rows.map((r: any) => ({
         date: r.date,
         rxMB: r.rxMB,
         txMB: r.txMB,
@@ -560,7 +560,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3456;
+const PORT = parseInt(process.env.PORT || '3456', 10);
 const HOST = '0.0.0.0';
 
 server.listen(PORT, HOST, () => {

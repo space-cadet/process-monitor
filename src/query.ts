@@ -206,7 +206,7 @@ function printStats(rows: any[], processName: string): void {
   console.log(`  Peak:    ${peakMem.toFixed(1)}% @ ${formatTime(peakMemTime)} | RSS ${Math.round(peakRss)}MB`);
 }
 
-function printTop(db: TimeSeriesDB, metric: string, limit: number, sinceMinutes: number): void {
+function printTop(db: TimeSeriesDB, metric: 'cpu' | 'mem', limit: number, sinceMinutes: number): void {
   const cutoff = Date.now() - sinceMinutes * 60000;
   const rows = db.getTopProcesses(metric, limit, cutoff);
 
@@ -309,7 +309,7 @@ async function main(): Promise<void> {
   const db = new TimeSeriesDB();
 
   try {
-    if (opts.top) {
+    if (opts.top === 'cpu' || opts.top === 'mem') {
       printTop(db, opts.top, opts.limit, opts.since);
     } else if (opts.spikes) {
       if (opts.stats) {

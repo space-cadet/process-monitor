@@ -98,7 +98,7 @@ export class AlertSender {
           disable_notification: false,
         }),
       });
-      const data = await res.json();
+      const data = await res.json() as { ok: boolean; description?: string };
       if (!data.ok) {
         console.error(`[Alert] Telegram error: ${data.description}`);
       } else {

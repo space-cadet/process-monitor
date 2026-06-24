@@ -169,7 +169,8 @@ export class DashboardServer {
 
       // ── Top processes ──
       if (pathname === '/api/top-processes') {
-        const metric = params.get('metric') ?? 'cpu'; // 'cpu' | 'mem'
+        const metricParam = params.get('metric') ?? 'cpu';
+        const metric = (metricParam === 'cpu' || metricParam === 'mem') ? metricParam : 'cpu';
         const limit = parseInt(params.get('limit') ?? '10', 10);
         const minutes = parseInt(params.get('minutes') ?? '5', 10);
         const cutoff = Date.now() - minutes * 60000;

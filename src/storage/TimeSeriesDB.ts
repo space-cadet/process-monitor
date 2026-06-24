@@ -1,13 +1,20 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
-import { SystemSnapshot, DrainEvent } from '../types/index.js';
+import {
+  BatterySample,
+  ProcessSnapshot,
+  SystemSnapshot,
+  ProcessSpike,
+  BatteryImpactEvent,
+  DrainEvent,
+} from '../types/index.js';
 
 /**
  * SQLite storage for time-series system snapshots and drain events.
  * Provides efficient querying for history and trend analysis.
  */
 export class TimeSeriesDB {
-  private db: Database.Database;
+  public db: Database.Database;
   private dbPath: string;
 
   constructor(dbPath: string = '~/.procmon/monitor.db') {
@@ -248,7 +255,7 @@ export class TimeSeriesDB {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      const insertProc = this.db.transaction((processes) => {
+      const insertProc = this.db.transaction((processes: ProcessSnapshot[]) => {
         for (const proc of processes) {
           procStmt.run(
             snapshotId, proc.pid, proc.name,
@@ -281,12 +288,12 @@ export class TimeSeriesDB {
     );
   }
 
-  getRecentSnapshots(minutes: number = 60): SystemSnapshot[] {
+  getRecentSnapshots(minutes: number = 60): any[] {
     const cutoff = Date.now() - minutes * 60000;
     const stmt = this.db.prepare(`
       SELECT * FROM snapshots WHERE timestamp > ? ORDER BY timestamp DESC
     `);
-    return stmt.all(cutoff) as SystemSnapshot[];
+    return stmt.all(cutoff);
   }
 
   /**
@@ -401,13 +408,32 @@ export class TimeSeriesDB {
         pid: p.pid,
         name: p.name,
         cpuPercent: p.cpu_percent,
+        cpuUserPercent: p.cpu_user_percent ?? 0,
+        cpuSystemPercent: p.cpu_system_percent ?? 0,
         memoryPercent: p.memory_percent,
         rssMB: p.rss_mb,
         vmsMB: 0,
+        nice: p.nice ?? 0,
+        state: p.state ?? 'unknown',
         cmdline: p.cmdline,
       })),
       cpuTotal: row.cpu_total,
+      cpuUser: row.cpu_user ?? 0,
+      cpuSystem: row.cpu_system ?? 0,
+      cpuIdle: row.cpu_idle ?? 0,
       memoryTotal: row.memory_total,
+      memoryUsedMB: row.memory_used_mb ?? 0,
+      memoryFreeMB: row.memory_free_mb ?? 0,
+      swapUsedMB: row.swap_used_mb ?? 0,
+      swapTotalMB: row.swap_total_mb ?? 0,
+      loadAvg: row.load_avg ?? 0,
+      diskReadIO: row.disk_read_io ?? null,
+      diskWriteIO: row.disk_write_io ?? null,
+      diskTotalIO: row.disk_total_io ?? null,
+      netRxBytes: row.net_rx_bytes ?? null,
+      netTxBytes: row.net_tx_bytes ?? null,
+      fsUsedPercent: row.fs_used_percent ?? null,
+      cpuTemp: row.cpu_temp ?? null,
     };
   }
 
