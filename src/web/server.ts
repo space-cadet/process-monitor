@@ -793,6 +793,27 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ─── Sleep/Wake Events Endpoint ───
+  if (pathname === '/api/sleep-wake-events') {
+    try {
+      const since = url.searchParams.get('since') || '24h';
+      const sinceMs = since === '7d' ? 7 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
+      const cutoff = Date.now() - sinceMs;
+      const stmt = db.db.prepare(`
+        SELECT * FROM sleep_wake_events
+        WHERE timestamp > ?
+        ORDER BY timestamp ASC
+      `);
+      const rows = stmt.all(cutoff);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(rows));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
   // Static files
   let filePath = pathname === '/' ? '/index.html' : pathname;
   const fullPath = join(__dirname, '../../web/public', filePath);
