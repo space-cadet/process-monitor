@@ -107,6 +107,9 @@
           <div class="panel-header">
             <div class="panel-title" style="--panel-accent: var(--accent-cpu);">Top Processes</div>
             <div class="panel-actions" id="processPanelActions">
+              <div class="search-box">
+                <input type="text" id="processSearch" placeholder="🔍 Filter processes..." oninput="filterProcesses(this.value)">
+              </div>
               <button class="panel-btn active" id="viewListBtn" onclick="switchProcessView('list')">List</button>
               <button class="panel-btn" id="viewTreeBtn" onclick="switchProcessView('tree')">Tree</button>
             </div>
@@ -581,6 +584,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

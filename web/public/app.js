@@ -760,6 +760,36 @@ function renderPeerMetricsGrid(peers) {
 }
 
 let currentProcessView = 'list';
+let currentSearchFilter = '';
+
+function filterProcesses(query) {
+  currentSearchFilter = query.toLowerCase().trim();
+  if (currentProcessView === 'list') {
+    renderProcesses();
+  } else {
+    loadProcessTree();
+  }
+}
+
+function processMatchesSearch(p) {
+  if (!currentSearchFilter) return true;
+  const search = currentSearchFilter;
+  return (p.name && p.name.toLowerCase().includes(search)) ||
+         (p.pid && String(p.pid).includes(search));
+}
+
+function filterTreeNodes(nodes) {
+  if (!currentSearchFilter) return nodes;
+  const result = [];
+  for (const node of nodes) {
+    const children = node.children ? filterTreeNodes(node.children) : [];
+    const matches = processMatchesSearch(node);
+    if (matches || children.length > 0) {
+      result.push({ ...node, children });
+    }
+  }
+  return result;
+}
 
 function switchProcessView(view) {
   currentProcessView = view;
@@ -776,7 +806,8 @@ async function loadProcessTree() {
     const res = await fetch(`${API_BASE}/api/process-tree`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    renderProcessTree(data.processes || []);
+    const filtered = filterTreeNodes(data.processes || []);
+    renderProcessTree(filtered);
   } catch (err) {
     console.error('Process tree fetch error:', err);
     document.getElementById('processTree').innerHTML =
@@ -1055,15 +1086,20 @@ function renderProcesses() {
   const tbody = document.getElementById('processTable');
   let toRender = [...currentProcesses];
 
+  if (currentSearchFilter) {
+    toRender = toRender.filter(processMatchesSearch);
+  }
+
   if (activeProfileFilter) {
     toRender = toRender.filter(p =>
       activeProfileFilter.names.some(n => p.name.toLowerCase().includes(n))
     );
-    if (!toRender.length) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 20px;">No matching processes currently running</td></tr>`;
-      updateSortIndicators();
-      return;
-    }
+  }
+
+  if (!toRender.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 20px;">${currentSearchFilter ? 'No processes match "' + escapeHtml(currentSearchFilter) + '"' : 'No matching processes currently running'}</td></tr>`;
+    updateSortIndicators();
+    return;
   }
 
   const sorted = toRender.sort((a, b) => {
