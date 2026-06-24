@@ -717,6 +717,19 @@ export class TimeSeriesDB {
     }));
   }
 
+  getProcessSamplesForSnapshotIds(snapshotIds: number[]): any[] {
+    if (snapshotIds.length === 0) return [];
+    const placeholders = snapshotIds.map(() => '?').join(',');
+    const stmt = this.db.prepare(`
+      SELECT s.timestamp, ps.pid, ps.name, ps.cpu_percent, ps.memory_percent, ps.rss_mb, ps.energy_mj
+      FROM process_samples ps
+      JOIN snapshots s ON ps.snapshot_id = s.id
+      WHERE s.id IN (${placeholders})
+      ORDER BY s.timestamp ASC, ps.cpu_percent DESC
+    `);
+    return stmt.all(...snapshotIds);
+  }
+
   getTopProcessesForDateRange(start: number, end: number, metric: 'cpu' | 'mem', limit: number): any[] {
     const avgCol = metric === 'cpu' ? 'AVG(cpu_percent)' : 'AVG(memory_percent)';
     const peakCol = metric === 'cpu' ? 'MAX(cpu_percent)' : 'MAX(memory_percent)';

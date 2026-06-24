@@ -438,6 +438,21 @@ function exportAnalysisCSV() {
   URL.revokeObjectURL(url);
 }
 
+function downloadExport(format) {
+  const fromInput = document.getElementById('exportFrom').value;
+  const toInput = document.getElementById('exportTo').value;
+  const fromISO = fromInput ? new Date(fromInput).toISOString() : new Date(Date.now() - 86400000).toISOString();
+  const toISO = toInput ? new Date(toInput).toISOString() : new Date().toISOString();
+  const endpoint = format === 'csv' ? '/api/export/csv' : '/api/export/json';
+  const url = `${API_BASE}${endpoint}?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 // ─── Sleep/Wake Event Functions ───
 
 async function loadSleepWakeEvents(days = 7) {

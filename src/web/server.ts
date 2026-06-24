@@ -503,6 +503,112 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/api/export/csv') {
+    try {
+      const fromISO = url.searchParams.get('from') || '';
+      const toISO = url.searchParams.get('to') || '';
+      const fromMs = fromISO ? new Date(fromISO).getTime() : 0;
+      const toMs = toISO ? new Date(toISO).getTime() : Date.now();
+      if (isNaN(fromMs) || isNaN(toMs)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid from/to date' }));
+        return;
+      }
+      const rows = db.db.prepare(`
+        SELECT
+          s.id AS snapshot_id,
+          s.timestamp,
+          s.battery_percent,
+          s.cpu_total,
+          s.memory_used_mb,
+          ps.name AS process_name,
+          ps.pid AS process_pid,
+          ps.cpu_percent AS process_cpu,
+          ps.memory_percent AS process_mem
+        FROM snapshots s
+        LEFT JOIN process_samples ps ON ps.snapshot_id = s.id
+        WHERE s.timestamp >= ? AND s.timestamp <= ?
+        ORDER BY s.timestamp DESC, ps.cpu_percent DESC
+      `).all(fromMs, toMs);
+      const csvHeader = 'snapshot_id,timestamp,battery_percent,cpu_total,memory_used_mb,process_name,process_pid,process_cpu,process_mem';
+      const csvRows = rows.map((r: any) => [
+        r.snapshot_id,
+        new Date(r.timestamp).toISOString(),
+        r.battery_percent ?? '',
+        r.cpu_total ?? '',
+        r.memory_used_mb ?? '',
+        r.process_name ?? '',
+        r.process_pid ?? '',
+        r.process_cpu ?? '',
+        r.process_mem ?? ''
+      ].map(v => {
+        const s = String(v);
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }).join(','));
+      const csv = [csvHeader, ...csvRows].join('\n');
+      const filename = `procmon-export-${new Date(fromMs).toISOString().slice(0,10)}_to_${new Date(toMs).toISOString().slice(0,10)}.csv`;
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      });
+      res.end(csv);
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/export/json') {
+    try {
+      const fromISO = url.searchParams.get('from') || '';
+      const toISO = url.searchParams.get('to') || '';
+      const fromMs = fromISO ? new Date(fromISO).getTime() : 0;
+      const toMs = toISO ? new Date(toISO).getTime() : Date.now();
+      if (isNaN(fromMs) || isNaN(toMs)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid from/to date' }));
+        return;
+      }
+      const rows = db.db.prepare(`
+        SELECT
+          s.id AS snapshot_id,
+          s.timestamp,
+          s.battery_percent,
+          s.cpu_total,
+          s.memory_used_mb,
+          ps.name AS process_name,
+          ps.pid AS process_pid,
+          ps.cpu_percent AS process_cpu,
+          ps.memory_percent AS process_mem
+        FROM snapshots s
+        LEFT JOIN process_samples ps ON ps.snapshot_id = s.id
+        WHERE s.timestamp >= ? AND s.timestamp <= ?
+        ORDER BY s.timestamp DESC, ps.cpu_percent DESC
+      `).all(fromMs, toMs);
+      const result = {
+        exportedAt: new Date().toISOString(),
+        from: new Date(fromMs).toISOString(),
+        to: new Date(toMs).toISOString(),
+        count: rows.length,
+        data: rows,
+      };
+      const filename = `procmon-export-${new Date(fromMs).toISOString().slice(0,10)}_to_${new Date(toMs).toISOString().slice(0,10)}.json`;
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      });
+      res.end(JSON.stringify(result, null, 2));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
   if (pathname === '/api/db-size') {
     try {
       const stats = db.getStats();
@@ -680,6 +786,72 @@ const server = createServer(async (req, res) => {
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ processes: roots, total: processes.length }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  // ─── Export Endpoints ───
+  if (pathname === '/api/export/json') {
+    try {
+      const startParam = url.searchParams.get('start');
+      const endParam = url.searchParams.get('end');
+      const includeProcesses = url.searchParams.get('processes') === '1';
+      const start = startParam ? new Date(startParam).getTime() : Date.now() - 24 * 60 * 60 * 1000;
+      const end = endParam ? new Date(endParam).getTime() : Date.now();
+
+      const snapshots = db.getSnapshotsForDateRange(start, end);
+
+      let processes: any[] = [];
+      if (includeProcesses && snapshots.length > 0) {
+        const snapshotIds = snapshots.map(s => s.id);
+        processes = db.getProcessSamplesForSnapshotIds(snapshotIds);
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename="process-monitor-${new Date().toISOString().slice(0,10)}.json"`,
+      });
+      res.end(JSON.stringify({ snapshots, processes, exportedAt: Date.now() }, null, 2));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/export/csv') {
+    try {
+      const startParam = url.searchParams.get('start');
+      const endParam = url.searchParams.get('end');
+      const includeProcesses = url.searchParams.get('processes') === '1';
+      const start = startParam ? new Date(startParam).getTime() : Date.now() - 24 * 60 * 60 * 1000;
+      const end = endParam ? new Date(endParam).getTime() : Date.now();
+
+      const snapshots = db.getSnapshotsForDateRange(start, end);
+
+      // CSV header for snapshots
+      let csv = 'timestamp,iso_time,battery_percent,cpu_total,memory_total,disk_read_mb,disk_write_mb,net_rx_mb,net_tx_mb,fs_used_percent,uptime_seconds,load_1m,load_5m,load_15m\n';
+      for (const s of snapshots) {
+        csv += `${s.timestamp},${new Date(s.timestamp).toISOString()},${s.battery_percent},${s.cpu_total},${s.memory_total},${s.disk_read_mb},${s.disk_write_mb},${s.net_rx_mb},${s.net_tx_mb},${s.fs_used_percent},${s.uptime_seconds},${s.load_1m},${s.load_5m},${s.load_15m}\n`;
+      }
+
+      if (includeProcesses && snapshots.length > 0) {
+        const snapshotIds = snapshots.map(s => s.id);
+        const processes = db.getProcessSamplesForSnapshotIds(snapshotIds);
+        csv += '\n\nprocesses_timestamp,iso_time,pid,name,cpu_percent,memory_percent,rss_mb,energy_mj\n';
+        for (const p of processes) {
+          csv += `${p.timestamp},${new Date(p.timestamp).toISOString()},${p.pid},${p.name},${p.cpu_percent},${p.memory_percent},${p.rss_mb},${p.energy_mj ?? ''}\n`;
+        }
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="process-monitor-${new Date().toISOString().slice(0,10)}.csv"`,
+      });
+      res.end(csv);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));

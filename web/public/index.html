@@ -465,6 +465,25 @@
           </div>
         </div>
       </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" style="--panel-accent: var(--accent-cpu);">📥 Data Export</div>
+          <div class="panel-actions">
+            <input type="datetime-local" id="exportFrom" style="background:var(--surface-raised);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-family:var(--font-mono);font-size:13px;">
+            <input type="datetime-local" id="exportTo" style="background:var(--surface-raised);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-family:var(--font-mono);font-size:13px;">
+            <button class="panel-btn" onclick="downloadExport('csv')">⬇ CSV</button>
+            <button class="panel-btn" onclick="downloadExport('json')">⬇ JSON</button>
+          </div>
+        </div>
+        <div class="analysis-content" id="exportContent">
+          <div class="analysis-placeholder">
+            <div class="placeholder-icon">📥</div>
+            <h3>Export raw snapshot data</h3>
+            <p>Pick a date range, then download as CSV or JSON. Columns: snapshot_id, timestamp, battery_percent, cpu_total, memory_used_mb, process_name, process_pid, process_cpu, process_mem.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ─── SLEEP TAB ─── -->
