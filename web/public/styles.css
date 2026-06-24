@@ -1979,28 +1979,29 @@ footer {
     gap: 4px;
   }
   
+  /* Name column gets 3x the space of stats */
+  .tree-name {
+    flex: 3;
+  }
+  
   .tree-name-text {
     font-size: 12px;
   }
   
-  /* Hide directory prefix on mobile, show only basename */
-  .tree-name-dir {
+  /* Hide directory prefix and PID on mobile */
+  .tree-name-dir,
+  .tree-pid {
     display: none;
   }
   
-  .tree-pid {
-    width: 42px;
-    font-size: 10px;
-  }
-  
   .tree-cpu {
-    width: 48px;
-    font-size: 12px;
+    width: 44px;
+    font-size: 11px;
   }
   
   .tree-mem {
-    width: 58px;
-    font-size: 12px;
+    width: 52px;
+    font-size: 11px;
   }
   
   .tree-type-badge {
