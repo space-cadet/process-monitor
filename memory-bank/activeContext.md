@@ -1,6 +1,6 @@
 # Active Context
 
-*Last Updated: 2026-06-24*
+*Last Updated: 2026-06-24 13:22 IST*
 
 ## Current Tasks
 
@@ -101,6 +101,15 @@ See workspace beads queue for full details.
 
 ---
 
+### 🛠️ Cross-Platform Fixes (2026-06-24)
+- **SleepWakeDetector**: `src/core/SleepWakeDetector.ts` — `getPlatform()` helper detects `darwin`/`linux`/`windows`/`other`. macOS: `ioreg`+`pmset`. Linux: reads battery from `/sys/class/power_supply/BAT*/capacity` + `status`. Others: graceful no-op with single log warning.
+- **Restart Endpoint**: `src/web/server.ts` `/api/restart` — removed hardcoded `/Users/sage` path, now uses `process.cwd()` and `process.env.HOME || '/tmp'`.
+- **Ignored Processes**: `src/config/ConfigManager.ts` — added Linux kernel threads (`kworker`, `ksoftirqd`, `rcu_preempt`, `migration`, `watchdogd`, `cpuhp`, `khugepaged`, `kcompactd0`, `oom_reaper`) alongside existing macOS ones (`kernel_task`, `WindowServer`, `mds`, `mdworker`).
+- **Dashboard Battery UI**: `web/public/app.js` — detects `percent === 0 && isPlugged` as "no battery", shows `— N/A` / "No battery" / "Desktop / Server" instead of misleading `0%` on battery-less machines.
+- **Repo renamed**: `mac-process-monitor` → `process-monitor` on GitHub and locally.
+
+---
+
 ## Completed Tasks (Recent)
 - **T17: Multi-Device Dashboard V1** (2026-06-24) — Identity, QR pairing, peer polling, Tailscale/LAN/localhost
 - **T15: Energy API** (2026-06-24) — `powermetrics` integration, `energy_mj` field
@@ -124,11 +133,11 @@ See workspace beads queue for full details.
 - **Mobile tree view:** Return to CSS layout fix later
 
 ## System Status
-- **Battery**: 100%, plugged in
-- **Memory**: ~97% used (normal for this Mac)
-- **DB**: `~/.procmon/monitor.db` — ~90+ MB, 17K+ snapshots, 750K+ process samples
+- **Battery**: N/A (Linux VPS — no battery)
+- **Memory**: ~17% used (Linux VPS, 2GB RAM)
+- **DB**: `~/.procmon/monitor.db` — 83 snapshots, 532KB (fresh start on Linux VPS)
 - **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
-- **Monitor**: Running via LaunchDaemon + cron check every 10 minutes
+- **Monitor**: Running via `npx tsx src/main.ts` on Linux VPS, collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
-- **Git Status**: All changes committed
-- **Network**: LAN `192.168.1.42`, Tailscale `100.92.54.38`
+- **Git Status**: All changes committed (commits `1561ca2`, `18a7024` pushed)
+- **Network**: VPS public IP, no Tailscale on this node

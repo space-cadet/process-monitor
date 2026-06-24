@@ -1,8 +1,8 @@
 # Progress Report: process-monitor
 
-*Last Updated: 2026-06-19 00:52 IST*
+*Last Updated: 2026-06-24 13:22 IST*
 
-## Project Status: T1-T17 Complete; T5 (Swift), T11 (NL Search), T14 (ML) Remaining
+## Project Status: T1-T17 Complete + Cross-Platform Fixes; T5 (Swift), T11 (NL Search), T14 (ML) Remaining
 
 ### What Works
 
@@ -16,6 +16,7 @@
 - **T9 — Sleep/Wake Correlation Tracking**: ✅ COMPLETE (2026-06-24)
   - `sleep_wake_events` table + `/api/sleep-wake-events` endpoint
   - Sleep tab in dashboard with timeline
+  - **Cross-platform fix (2026-06-24):** `SleepWakeDetector.ts` now detects OS via `getPlatform()` — macOS uses `ioreg`+`pmset`, Linux reads `/sys/class/power_supply/BAT*/capacity`, others gracefully no-op.
 - **T10 — "What Drained My Battery?" Report**: ✅ COMPLETE (2026-06-24)
   - `ReportGenerator.ts` with daily battery health scoring
   - `--report` CLI flag with `--output` format (text/json)
@@ -42,6 +43,12 @@
   - Peer polling in dashboard — fetches metrics from registered devices every 30s
   - Devices tab with online/offline status cards
   - Network auto-detection: LAN (`192.168.x`), Tailscale (`100.x`), localhost
+- **Cross-Platform Fixes**: ✅ COMPLETE (2026-06-24)
+  - `SleepWakeDetector.ts` — OS-aware platform detection (darwin/linux/windows/other). macOS: `ioreg`+`pmset`. Linux: `/sys/class/power_supply/BAT*/capacity`. Others: graceful no-op.
+  - `web/server.ts` `/api/restart` — removed hardcoded `/Users/sage` path, now uses `process.cwd()` + `process.env.HOME || '/tmp'`
+  - `ConfigManager.ts` — added Linux kernel processes (`kworker`, `ksoftirqd`, `rcu_preempt`, etc.) to `ignoredProcesses`
+  - `web/public/app.js` — battery UI shows "No battery" / "Desktop / Server" on battery-less machines instead of `0%`
+  - Repo renamed: `mac-process-monitor` → `process-monitor` on GitHub and locally
 
 ### What's Left to Build
 
@@ -90,6 +97,7 @@
 | 2026-06-24 | T9-T10: Sleep/wake + Reports (ReportGenerator, CLI, dashboard) | ✅ |
 | 2026-06-24 | T12-T13-T15: Data export + Process tree + Energy API | ✅ |
 | 2026-06-24 | T17: Multi-Device V1 — identity, QR, peer polling, Tailscale | ✅ |
+| 2026-06-24 | Cross-Platform Fixes — SleepWakeDetector, restart path, ignored processes, battery UI | ✅ |
 | *Next* | T11: Natural language search or T5: Swift menubar | ⬜ |
 
 ### Current Blockers
@@ -98,7 +106,10 @@
 
 ### Notes
 
-- DB growth rate: ~11.2 MB/day at 30s interval with full process logging
+- DB growth rate: ~11.2 MB/day at 30s interval with full process logging (Mac). On Linux VPS with lighter load: ~0.5 MB/day.
 - Auto-cleanup triggers every ~50 min (100 ticks), checks age + size thresholds
 - Config is now fully editable via dashboard and persists to `~/.procmon/config.json`
 - Alert system supports both Telegram and macOS native notifications with automatic fallback
+- **Cross-platform:** Now runs on macOS (primary) and Linux (VPS-tested). Windows support is theoretical (no-op for sleep/battery, rest should work)
+- **Repo location:** `code/process-monitor/` (renamed from `mac-process-monitor` 2026-06-24)
+- **GitHub:** `https://github.com/space-cadet/process-monitor`

@@ -1,7 +1,7 @@
 # Memory Bank - process-monitor Tasks
 
 *Created: 2026-05-25*
-*Last Updated: 2026-06-24*
+*Last Updated: 2026-06-24 13:22 IST*
 
 ## Overview
 
@@ -31,6 +31,7 @@ Task tracking for the process-monitor project. Tasks are ordered by priority (HI
 | T13 | Process Tree View (Hierarchical) | 2026-06-24 | `/api/process-tree`, Tree/List toggle in Processes tab. [Details](tasks/T13.md) |
 | T15 | macOS Energy API Integration | 2026-06-24 | `EnergyCollector.ts` — `powermetrics` energy (mJ), `energy_mj` field in DB. [Details](tasks/T15.md) |
 | T17 | Multi-Device Dashboard V1 | 2026-06-24 | `DeviceIdentity`, `DeviceRegistry`, QR pairing, peer polling, Tailscale/LAN/localhost. [Details](tasks/T17.md) |
+| T19 | Cross-Platform / OS-Agnostic Fixes | 2026-06-24 | `SleepWakeDetector` platform detection, `/api/restart` path fix, Linux kernel processes in `ignoredProcesses`, battery UI handles no-battery. [Details](tasks/T19.md) |
 
 ---
 
@@ -66,7 +67,8 @@ T1: Core Monitor (done)
 │                   └── T17: Multi-Device (done)
 ├── T6: Spike Detection ──→ T14: Anomaly Detection
 ├── T7: Battery Impact ──→ T10: Reports (done)
-└── T8: LaunchDaemon (done)
+├── T8: LaunchDaemon (done)
+└── T19: Cross-Platform Fixes (done) ──→ T9 (sleep/wake), Config, Server, UI
 ```
 
 ## Recommended Implementation Order
@@ -78,9 +80,9 @@ T1: Core Monitor (done)
 
 ## Status Summary
 
-- **Completed**: 13 (T1, T2, T3, T4, T6, T7, T8, T9, T10, T12, T13, T15, T17)
+- **Completed**: 14 (T1, T2, T3, T4, T6, T7, T8, T9, T10, T12, T13, T15, T17, T19)
 - **Pending**: 4 (T5, T11, T14, T18)
-- **Total**: 17
+- **Total**: 18
 
 ---
 
