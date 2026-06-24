@@ -132,6 +132,16 @@ See workspace beads queue for full details.
 - **T18:** Relay Server — For Android+NordVPN cross-network monitoring
 - **Mobile tree view:** Return to CSS layout fix later
 
+## Implementation Details
+
+Detailed implementation documentation for individual features:
+
+- [Cross-Platform Implementation](memory-bank/implementation-details/cross-platform-implementation.md) (T19) — Platform detection, OS-specific modules, support matrix
+- [Spike Detection](memory-bank/implementation-details/spike-detection-implementation.md) (T1) — Dual-threshold algorithm, baseline tracking, cooldown system
+- [Drain Detection](memory-bank/implementation-details/drain-detection-implementation.md) (T1) — Sliding window analysis, process correlation, alert format
+- [Battery Impact Analysis](memory-bank/implementation-details/battery-impact-implementation.md) (T1) — Scoring formula, accumulation strategy, dashboard display
+- [Multi-Device Dashboard](memory-bank/implementation-details/multi-device-dashboard-implementation.md) (T17) — Device identity, QR pairing, peer polling, network discovery
+
 ## System Status
 - **Battery**: N/A (Linux VPS — no battery)
 - **Memory**: ~17% used (Linux VPS, 2GB RAM)
