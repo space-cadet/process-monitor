@@ -1,7 +1,7 @@
 # Session Cache
 
-*Created: 2026-06-26 07:10:33 IST*
-*Last Updated: 2026-06-26 07:10:33 IST*
+*Created: 2026-06-26 07:12:19 IST*
+*Last Updated: 2026-06-26 07:12:19 IST*
 
 **Started**: 2026-06-26 06:53:06 IST
 **Focus Task**: T20: Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
@@ -23,6 +23,7 @@
 **Progress**:
 Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
 Phase 1: Frontend skeleton — clickable KPI cards with detail view switching. Added onclick handlers, active card state, localStorage persistence, renderDetailView dispatcher. CPU card shows process list, others show placeholders.
+Phase 1 complete: Clickable KPI cards with detail view switching. Added onclick handlers, active card state with CSS transitions, localStorage persistence for selected card, renderDetailView() dispatcher. CPU card shows process list with search/tree toggle, other cards show themed placeholders.
 
 ## Next Session Focus
 

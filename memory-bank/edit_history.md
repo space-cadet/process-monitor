@@ -1,10 +1,15 @@
 # Edit History
 
-*Last Updated: 2026-06-26 07:10:33 IST*
+*Last Updated: 2026-06-26 07:12:19 IST*
 
 ---
 
 ## 2026-06-26
+
+#### 07:12:19 IST - T20: Phase 1 complete: Clickable KPI cards with detail view switching. Added onclick handlers, active card state with CSS transitions, localStorage persistence for selected card, renderDetailView() dispatcher. CPU card shows process list with search/tree toggle, other cards show themed placeholders.
+- Modified `web/public/index.html` - Modified web/public/index.html
+- Modified `web/public/styles.css` - Modified web/public/styles.css
+- Modified `web/public/app.js` - Modified web/public/app.js
 
 #### 07:10:27 IST - T20: Phase 1: Frontend skeleton — clickable KPI cards with detail view switching. Added onclick handlers, active card state, localStorage persistence, renderDetailView dispatcher. CPU card shows process list, others show placeholders.
 - Modified `web/public/index.html` - Modified web/public/index.html
