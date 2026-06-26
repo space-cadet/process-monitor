@@ -1,6 +1,6 @@
 # Progress Report: process-monitor
 
-*Last Updated: 2026-06-24 13:22 IST*
+*Last Updated: 2026-06-26 11:40 IST*
 
 ## Project Status: T1-T17 Complete + Cross-Platform Fixes; T5 (Swift), T11 (NL Search), T14 (ML) Remaining
 
@@ -43,11 +43,12 @@
   - Peer polling in dashboard — fetches metrics from registered devices every 30s
   - Devices tab with online/offline status cards
   - Network auto-detection: LAN (`192.168.x`), Tailscale (`100.x`), localhost
-- **Cross-Platform Fixes**: ✅ COMPLETE (2026-06-24)
+- **Cross-Platform Fixes**: ✅ COMPLETE (2026-06-24 + 2026-06-26)
   - `SleepWakeDetector.ts` — OS-aware platform detection (darwin/linux/windows/other). macOS: `ioreg`+`pmset`. Linux: `/sys/class/power_supply/BAT*/capacity`. Others: graceful no-op.
   - `web/server.ts` `/api/restart` — removed hardcoded `/Users/sage` path, now uses `process.cwd()` + `process.env.HOME || '/tmp'`
   - `ConfigManager.ts` — added Linux kernel processes (`kworker`, `ksoftirqd`, `rcu_preempt`, etc.) to `ignoredProcesses`
   - `web/public/app.js` — battery UI shows "No battery" / "Desktop / Server" on battery-less machines instead of `0%`
+  - **Disk usage fix (2026-06-26):** `SystemCollector.ts` — on macOS Catalina+, prefer `/System/Volumes/Data` (data volume) over `/` (read-only system volume). Fixes bug where MacBooks showed ~20% usage when actually ~80% full.
   - Repo renamed: `mac-process-monitor` → `process-monitor` on GitHub and locally
 
 ### What's Left to Build
@@ -98,6 +99,7 @@
 | 2026-06-24 | T12-T13-T15: Data export + Process tree + Energy API | ✅ |
 | 2026-06-24 | T17: Multi-Device V1 — identity, QR, peer polling, Tailscale | ✅ |
 | 2026-06-24 | Cross-Platform Fixes — SleepWakeDetector, restart path, ignored processes, battery UI | ✅ |
+| 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
 | *Next* | T11: Natural language search or T5: Swift menubar | ⬜ |
 
 ### Current Blockers

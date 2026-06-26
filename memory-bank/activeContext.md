@@ -1,6 +1,6 @@
 # Active Context
 
-*Last Updated: 2026-06-24 13:22 IST*
+*Last Updated: 2026-06-26 11:40 IST*
 
 ## Current Tasks
 
@@ -101,11 +101,12 @@ See workspace beads queue for full details.
 
 ---
 
-### 🛠️ Cross-Platform Fixes (2026-06-24)
+### 🛠️ Cross-Platform Fixes (2026-06-24 + 2026-06-26)
 - **SleepWakeDetector**: `src/core/SleepWakeDetector.ts` — `getPlatform()` helper detects `darwin`/`linux`/`windows`/`other`. macOS: `ioreg`+`pmset`. Linux: reads battery from `/sys/class/power_supply/BAT*/capacity` + `status`. Others: graceful no-op with single log warning.
 - **Restart Endpoint**: `src/web/server.ts` `/api/restart` — removed hardcoded `/Users/sage` path, now uses `process.cwd()` and `process.env.HOME || '/tmp'`.
 - **Ignored Processes**: `src/config/ConfigManager.ts` — added Linux kernel threads (`kworker`, `ksoftirqd`, `rcu_preempt`, `migration`, `watchdogd`, `cpuhp`, `khugepaged`, `kcompactd0`, `oom_reaper`) alongside existing macOS ones (`kernel_task`, `WindowServer`, `mds`, `mdworker`).
 - **Dashboard Battery UI**: `web/public/app.js` — detects `percent === 0 && isPlugged` as "no battery", shows `— N/A` / "No battery" / "Desktop / Server" instead of misleading `0%` on battery-less machines.
+- **Disk Usage Fix (2026-06-26)**: `src/core/SystemCollector.ts` — on macOS Catalina+, prefer `/System/Volumes/Data` (the data volume) over `/` (the read-only system volume) for accurate disk usage reporting. Fixes bug where MacBooks showed ~20% usage when actually ~80% full.
 - **Repo renamed**: `mac-process-monitor` → `process-monitor` on GitHub and locally.
 
 ---
@@ -149,5 +150,5 @@ Detailed implementation documentation for individual features:
 - **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
 - **Monitor**: Running via `npx tsx src/main.ts` on Linux VPS, collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
-- **Git Status**: All changes committed (commits `1561ca2`, `18a7024` pushed)
+- **Git Status**: All changes committed (commits `2127ae6`, `012d23b` pushed)
 - **Network**: VPS public IP, no Tailscale on this node
