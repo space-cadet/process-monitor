@@ -12,6 +12,155 @@ let lastNetworkRates = { rx: 0, tx: 0 };
 let peerMetricsCache = new Map();
 let peerPollInterval = null;
 
+// ─── KPI Card Selection ───
+let activeKpiCard = localStorage.getItem('procmon_active_card') || 'cpu';
+
+function selectKpiCard(card) {
+  activeKpiCard = card;
+  localStorage.setItem('procmon_active_card', card);
+
+  // Update card visuals
+  document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.kpi-card[data-kpi="${card}"]`).classList.add('active');
+
+  // Update detail view title accent
+  const accentMap = {
+    battery: 'var(--accent-battery)',
+    cpu: 'var(--accent-cpu)',
+    memory: 'var(--accent-mem)',
+    status: 'var(--accent-ok)',
+    disk: 'var(--accent-disk)',
+    network: 'var(--accent-network)'
+  };
+  document.getElementById('detailViewTitle').style.setProperty('--panel-accent', accentMap[card] || 'var(--accent-cpu)');
+
+  // Show/hide process panel actions (search + list/tree) only for CPU
+  const actions = document.getElementById('processPanelActions');
+  if (actions) {
+    actions.style.display = card === 'cpu' ? 'flex' : 'none';
+  }
+
+  renderDetailView();
+}
+
+function renderDetailView() {
+  const container = document.getElementById('detailViewContent');
+  const title = document.getElementById('detailViewTitle');
+
+  switch (activeKpiCard) {
+    case 'cpu':
+      title.textContent = 'Top Processes';
+      showProcessView();
+      renderProcesses();
+      break;
+    case 'memory':
+      title.textContent = 'Memory Details';
+      renderMemoryView();
+      break;
+    case 'disk':
+      title.textContent = 'Disk & Volumes';
+      renderDiskView();
+      break;
+    case 'network':
+      title.textContent = 'Network Interfaces';
+      renderNetworkView();
+      break;
+    case 'battery':
+      title.textContent = 'Battery & Energy';
+      renderBatteryView();
+      break;
+    case 'status':
+      title.textContent = 'System Status';
+      renderStatusView();
+      break;
+    default:
+      title.textContent = 'Top Processes';
+      showProcessView();
+      renderProcesses();
+  }
+}
+
+function showProcessView() {
+  const container = document.getElementById('detailViewContent');
+  container.innerHTML = `
+    <div class="table-wrapper" id="processListWrapper">
+      <table class="process-table">
+        <thead>
+          <tr>
+            <th onclick="sortByColumn('process')" style="cursor: pointer;">Process</th>
+            <th onclick="sortByColumn('pid')" style="cursor: pointer;">PID</th>
+            <th onclick="sortByColumn('cpu')" style="cursor: pointer;">CPU</th>
+            <th onclick="sortByColumn('memory')" style="cursor: pointer;">Memory</th>
+          </tr>
+        </thead>
+        <tbody id="processTable">
+          <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tree-wrapper" id="processTreeWrapper" style="display: none;">
+      <div class="process-tree" id="processTree">
+        <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading tree...</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMemoryView() {
+  const container = document.getElementById('detailViewContent');
+  container.innerHTML = `
+    <div class="detail-view-placeholder">
+      <div class="placeholder-icon">💾</div>
+      <h4>Memory Details</h4>
+      <p>Process list sorted by memory usage, memory pressure gauge, and swap usage will appear here. (Phase 2)</p>
+    </div>
+  `;
+}
+
+function renderDiskView() {
+  const container = document.getElementById('detailViewContent');
+  container.innerHTML = `
+    <div class="detail-view-placeholder">
+      <div class="placeholder-icon">💿</div>
+      <h4>Disk & Volumes</h4>
+      <p>Per-mount disk usage, I/O throughput, queue depth, and SMART status will appear here. (Phase 2)</p>
+    </div>
+  `;
+}
+
+function renderNetworkView() {
+  const container = document.getElementById('detailViewContent');
+  container.innerHTML = `
+    <div class="detail-view-placeholder">
+      <div class="placeholder-icon">🌐</div>
+      <h4>Network Interfaces</h4>
+      <p>Interface list, active connections, and latency monitoring will appear here. (Phase 3)</p>
+    </div>
+  `;
+}
+
+function renderBatteryView() {
+  const container = document.getElementById('detailViewContent');
+  container.innerHTML = `
+    <div class="detail-view-placeholder">
+      <div class="placeholder-icon">🔋</div>
+      <h4>Battery & Energy</h4>
+      <p>Battery history chart, per-process energy usage, and impact analysis will appear here. (Phase 4)</p>
+    </div>
+  `;
+}
+
+function renderStatusView() {
+  const container = document.getElementById('detailViewContent');
+  container.innerHTML = `
+    <div class="detail-view-placeholder">
+      <div class="placeholder-icon">ℹ️</div>
+      <h4>System Status</h4>
+      <p>Overall system health summary and uptime information will appear here.</p>
+    </div>
+  `;
+}
+
 // ─── Main Tab Switching ───
 function switchMainTab(tab) {
   document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
@@ -1062,7 +1211,7 @@ function updateDashboard(data) {
   previousSnapshot = data;
 
   currentProcesses = data.processes || [];
-  renderProcesses();
+  renderDetailView();
 }
 
 function sortByColumn(column) {
@@ -1859,6 +2008,9 @@ function initSettingsAutoSave() {
 
 // Initialize
 function init() {
+  // Restore active KPI card from localStorage
+  selectKpiCard(activeKpiCard);
+
   fetchData();
   loadHistory(60, document.querySelector('.panel-actions .panel-btn.active'));
   loadDrainEvents();

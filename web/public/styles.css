@@ -277,6 +277,23 @@ header {
   padding: 20px;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color);
+}
+
+.kpi-card.active {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-color), 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.kpi-card.active::before {
+  height: 4px;
 }
 
 .kpi-card::before {
@@ -287,6 +304,7 @@ header {
   right: 0;
   height: 3px;
   background: var(--accent-color);
+  transition: height 0.2s ease;
 }
 
 .kpi-card.battery { --accent-color: var(--accent-battery); }
@@ -508,6 +526,36 @@ header {
 .table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.detail-view {
+  min-height: 200px;
+  transition: opacity 0.2s ease;
+}
+
+.detail-view-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.detail-view-placeholder .placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.detail-view-placeholder h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.detail-view-placeholder p {
+  font-size: 13px;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .table-wrapper::-webkit-scrollbar {

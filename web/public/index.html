@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Process Monitor</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <div class="container">
@@ -52,7 +52,7 @@
     <!-- ─── OVERVIEW TAB ─── -->
     <div class="tab-content active" id="overviewTab">
       <div class="kpi-grid">
-        <div class="kpi-card battery">
+        <div class="kpi-card battery" data-kpi="battery" onclick="selectKpiCard('battery')">
           <div class="kpi-label">Battery</div>
           <div class="kpi-value" id="batteryValue">--<span>%</span></div>
           <div class="battery-visual">
@@ -64,7 +64,7 @@
           <div class="kpi-detail" id="batteryDetail">--</div>
         </div>
 
-        <div class="kpi-card cpu">
+        <div class="kpi-card cpu" data-kpi="cpu" onclick="selectKpiCard('cpu')">
           <div class="kpi-label">CPU Total</div>
           <div class="kpi-value" id="cpuValue">--<span>%</span></div>
           <div class="kpi-trend" id="cpuTrend">
@@ -73,14 +73,14 @@
           <div class="kpi-detail" id="cpuDetail">--</div>
         </div>
 
-        <div class="kpi-card memory">
+        <div class="kpi-card memory" data-kpi="memory" onclick="selectKpiCard('memory')">
           <div class="kpi-label">Memory</div>
           <div class="kpi-value" id="memValue">--<span>GB</span></div>
           <div class="kpi-value" style="font-size: 18px; color: var(--text-dim); margin-top: -4px;" id="memPercent">--</div>
           <div class="kpi-detail" id="memDetail">--</div>
         </div>
 
-        <div class="kpi-card status">
+        <div class="kpi-card status" data-kpi="status" onclick="selectKpiCard('status')">
           <div class="kpi-label">Status</div>
           <div class="kpi-value" style="font-size: 24px; margin-top: 6px;" id="statusValue">--</div>
           <div class="kpi-trend" id="statusTrend">
@@ -89,13 +89,13 @@
           <div class="kpi-detail" id="statusDetail">--</div>
         </div>
 
-        <div class="kpi-card disk">
+        <div class="kpi-card disk" data-kpi="disk" onclick="selectKpiCard('disk')">
           <div class="kpi-label">Disk</div>
           <div class="kpi-value" id="diskValue">--<span>%</span></div>
           <div class="kpi-detail" id="diskDetail">--</div>
         </div>
 
-        <div class="kpi-card network">
+        <div class="kpi-card network" data-kpi="network" onclick="selectKpiCard('network')">
           <div class="kpi-label">Network</div>
           <div class="kpi-value" id="netValue" style="font-size: 24px;">--</div>
           <div class="kpi-detail" id="netDetail">--</div>
@@ -105,7 +105,7 @@
       <div class="main-grid">
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title" style="--panel-accent: var(--accent-cpu);">Top Processes</div>
+            <div class="panel-title" id="detailViewTitle" style="--panel-accent: var(--accent-cpu);">Top Processes</div>
             <div class="panel-actions" id="processPanelActions">
               <div class="search-box">
                 <input type="text" id="processSearch" placeholder="🔍 Filter processes..." oninput="filterProcesses(this.value)">
@@ -114,24 +114,26 @@
               <button class="panel-btn" id="viewTreeBtn" onclick="switchProcessView('tree')">Tree</button>
             </div>
           </div>
-          <div class="table-wrapper" id="processListWrapper">
-            <table class="process-table">
-              <thead>
-                <tr>
-                  <th onclick="sortByColumn('process')" style="cursor: pointer;">Process</th>
-                  <th onclick="sortByColumn('pid')" style="cursor: pointer;">PID</th>
-                  <th onclick="sortByColumn('cpu')" style="cursor: pointer;">CPU</th>
-                  <th onclick="sortByColumn('memory')" style="cursor: pointer;">Memory</th>
-                </tr>
-              </thead>
-              <tbody id="processTable">
-                <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="tree-wrapper" id="processTreeWrapper" style="display: none;">
-            <div class="process-tree" id="processTree">
-              <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading tree...</div>
+          <div class="detail-view" id="detailViewContent">
+            <div class="table-wrapper" id="processListWrapper">
+              <table class="process-table">
+                <thead>
+                  <tr>
+                    <th onclick="sortByColumn('process')" style="cursor: pointer;">Process</th>
+                    <th onclick="sortByColumn('pid')" style="cursor: pointer;">PID</th>
+                    <th onclick="sortByColumn('cpu')" style="cursor: pointer;">CPU</th>
+                    <th onclick="sortByColumn('memory')" style="cursor: pointer;">Memory</th>
+                  </tr>
+                </thead>
+                <tbody id="processTable">
+                  <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tree-wrapper" id="processTreeWrapper" style="display: none;">
+              <div class="process-tree" id="processTree">
+                <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading tree...</div>
+              </div>
             </div>
           </div>
         </div>
@@ -584,6 +586,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
