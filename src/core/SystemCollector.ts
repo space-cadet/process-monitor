@@ -119,7 +119,10 @@ export class SystemCollector {
     const cpuIdle = load?.currentLoadIdle ?? 0;
 
     // Find primary mount (usually / or C:\)
-    const primaryMount = fsSize.find(f => f.mount === '/' || f.mount === 'C:\\') || fsSize[0];
+    // On macOS Catalina+, user data is on /System/Volumes/Data, not /
+    const primaryMount = process.platform === 'darwin'
+      ? (fsSize.find(f => f.mount === '/System/Volumes/Data') || fsSize.find(f => f.mount === '/') || fsSize[0])
+      : (fsSize.find(f => f.mount === '/' || f.mount === 'C:\\') || fsSize[0]);
 
     // Find first active network interface with data
     const primaryNet = netStats.find(n => n.operstate === 'up' && (n.rx_bytes > 0 || n.tx_bytes > 0)) || netStats[0];
