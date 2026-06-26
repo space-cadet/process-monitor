@@ -55,6 +55,7 @@
 
 | Priority | Task | Description | Est. Effort |
 |----------|------|-------------|-------------|
+| ⚡ HIGH | T20 | Dashboard Detail Views — clickable KPI cards switching context-aware detail panel | 6-8h |
 | ⚡ MEDIUM | T11a-d | Natural Language Search — decomposed into 4 beads subtasks (see workspace beads queue) | 4-5h total |
 | 🔮 LOW | T14 | Anomaly Detection with ML | 6-8h |
 | 🔮 LOW | T5 | Swift Menubar App | 8-12h |
@@ -99,8 +100,9 @@
 | 2026-06-24 | T12-T13-T15: Data export + Process tree + Energy API | ✅ |
 | 2026-06-24 | T17: Multi-Device V1 — identity, QR, peer polling, Tailscale | ✅ |
 | 2026-06-24 | Cross-Platform Fixes — SleepWakeDetector, restart path, ignored processes, battery UI | ✅ |
+| 2026-06-26 | T20: Dashboard Detail Views — design complete (clickable KPI cards, context-aware detail views) | 🔄 |
 | 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
-| *Next* | T11: Natural language search or T5: Swift menubar | ⬜ |
+| *Next* | T20 Phase 1: Frontend skeleton with card-click switching | ⬜ |
 
 ### Current Blockers
 

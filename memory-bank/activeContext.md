@@ -4,6 +4,32 @@
 
 ## Current Tasks
 
+### 🔄 T20: Dashboard Detail Views — Clickable KPI Cards
+**Status:** Design complete, pending implementation.
+**Started:** 2026-06-26.
+
+**What it is:** Clicking each KPI card (CPU, Memory, Disk, Network, Battery) switches the detail view below it:
+- **CPU** → Process list sorted by CPU (current default)
+- **Memory** → Process list sorted by memory + system memory pressure gauge
+- **Disk** → Disk/volume list with per-mount I/O stats, queue depth, SMART status
+- **Network** → Network interface list + active connections table + latency sparkline
+- **Battery** → Battery history chart + per-process energy/impact table
+
+**Design doc:** [Dashboard Detail Views](memory-bank/implementation-details/dashboard-detail-views.md)
+
+**Key design decisions:**
+- Card selection persisted to `localStorage`
+- Default active card: CPU
+- 200ms CSS transition on view swap
+- Responsive: cards scroll horizontally on mobile
+
+**Open questions:**
+- Should chart tabs auto-sync with selected card?
+- Per-process disk I/O requires root — worth it?
+- Per-process network bandwidth requires root — worth it?
+
+---
+
 ### ✅ T17: Multi-Device Dashboard V1 — Complete
 **Completed:** 2026-06-24. Full V1 implementation.
 
@@ -127,6 +153,7 @@ See workspace beads queue for full details.
 - **T3: Query Interface** (2026-06-10)
 
 ## Next Steps
+- **T20:** Dashboard Detail Views — clickable KPI cards (design complete, implement Phase 1)
 - **T11a-d:** Natural Language Search subtasks (in beads queue)
 - **T5:** Swift Menubar App — Native macOS experience
 - **T14:** Anomaly Detection — Statistical outliers beyond thresholds
@@ -137,6 +164,7 @@ See workspace beads queue for full details.
 
 Detailed implementation documentation for individual features:
 
+- [Dashboard Detail Views](memory-bank/implementation-details/dashboard-detail-views.md) (T20) — Clickable KPI cards, context-aware detail views, per-subsystem drill-down
 - [Cross-Platform Implementation](memory-bank/implementation-details/cross-platform-implementation.md) (T19) — Platform detection, OS-specific modules, support matrix
 - [Spike Detection](memory-bank/implementation-details/spike-detection-implementation.md) (T1) — Dual-threshold algorithm, baseline tracking, cooldown system
 - [Drain Detection](memory-bank/implementation-details/drain-detection-implementation.md) (T1) — Sliding window analysis, process correlation, alert format
@@ -150,5 +178,5 @@ Detailed implementation documentation for individual features:
 - **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
 - **Monitor**: Running via `npx tsx src/main.ts` on Linux VPS, collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
-- **Git Status**: All changes committed (commits `2127ae6`, `012d23b` pushed)
+- **Git Status**: All changes committed (commits `2127ae6`, `012d23b`, `db32fc0` pushed)
 - **Network**: VPS public IP, no Tailscale on this node
