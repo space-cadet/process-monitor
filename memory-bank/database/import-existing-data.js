@@ -101,9 +101,9 @@ db.prepare(`INSERT OR REPLACE INTO sessions (id, date, period, focus, status, co
 console.log(`  📅 Session: ${sessionId}`);
 
 // Update session cache
-db.prepare(`INSERT OR REPLACE INTO session_cache (session_id, status, focus_task, active_tasks_count, paused_tasks_count, completed_tasks_count)
+db.prepare(`INSERT OR REPLACE INTO session_cache (session_id, status, focus, active_tasks_count, paused_tasks_count, completed_tasks_count)
             VALUES (?, ?, ?, ?, ?, ?)`)
-  .run(sessionId, 'completed', 'T1', 0, 0, 1);
+  .run(sessionId, 'completed', 'T20', 0, 0, 3);
 
 console.log(`  🗂️  Session cache updated`);
 
