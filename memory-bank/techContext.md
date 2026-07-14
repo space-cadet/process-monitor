@@ -17,6 +17,7 @@
 - **SQLite**: Time-series DB with eight tables — `snapshots`, `process_samples`, `drain_events`, `process_spikes`, `battery_impact`, `battery_impact_events`, `sleep_wake_events`, `device_registry`
 - **better-sqlite3**: Chosen for synchronous, simple API (no async transaction overhead)
 - **WAL mode**: Enabled for concurrent reads (dashboard queries while monitor writes)
+- **Auto-cleanup**: Every ~50 min (100 ticks at 30s interval) — deletes by age (30d default) AND by size (400MB default). See [T21](tasks/T21.md) for size-based cleanup algorithm.
 - **JSON files**: Device registry (`~/.procmon/devices.json`), device identity (`~/.procmon/config/device.json`)
 
 ### Configuration
