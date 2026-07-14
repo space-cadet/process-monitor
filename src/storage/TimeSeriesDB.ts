@@ -348,18 +348,63 @@ export class TimeSeriesDB {
     }));
   }
 
-  cleanupOldSamples(retentionDays: number): void {
+  cleanupOldSamples(retentionDays: number, maxSizeMB?: number): void {
     const cutoff = Date.now() - retentionDays * 86400000;
 
-    // Delete old process samples first (foreign key)
+    // Delete child rows first (foreign keys to snapshots)
     this.db.prepare(`
       DELETE FROM process_samples WHERE snapshot_id IN (
         SELECT id FROM snapshots WHERE timestamp < ?
       )
     `).run(cutoff);
 
+    this.db.prepare(`
+      DELETE FROM process_spikes WHERE snapshot_id IN (
+        SELECT id FROM snapshots WHERE timestamp < ?
+      )
+    `).run(cutoff);
+
     // Delete old snapshots
     this.db.prepare('DELETE FROM snapshots WHERE timestamp < ?').run(cutoff);
+
+    // ─── Size-based cleanup (if maxSizeMB provided) ───
+    if (maxSizeMB && maxSizeMB > 0) {
+      const targetBytes = maxSizeMB * 1024 * 1024;
+      let iterations = 0;
+      const maxIterations = 100; // safety limit
+
+      while (iterations < maxIterations) {
+        const stats = this.getStats();
+        if (stats.dbSizeBytes <= targetBytes) break;
+
+        // Delete oldest batch of snapshots (500 at a time)
+        const oldestIds = this.db.prepare(`
+          SELECT id FROM snapshots ORDER BY timestamp ASC LIMIT 500
+        `).all() as any[];
+
+        if (oldestIds.length === 0) break;
+
+        const ids = oldestIds.map(r => r.id);
+        const placeholders = ids.map(() => '?').join(',');
+
+        this.db.prepare(`
+          DELETE FROM process_samples WHERE snapshot_id IN (${placeholders})
+        `).run(...ids);
+
+        this.db.prepare(`
+          DELETE FROM process_spikes WHERE snapshot_id IN (${placeholders})
+        `).run(...ids);
+
+        this.db.prepare(`
+          DELETE FROM snapshots WHERE id IN (${placeholders})
+        `).run(...ids);
+
+        iterations++;
+      }
+
+      // Reclaim freed disk space
+      this.db.prepare('VACUUM').run();
+    }
   }
 
   getStats(): { totalSnapshots: number; totalEvents: number; oldestSnapshot: number | null; dbSizeBytes: number } {

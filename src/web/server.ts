@@ -320,15 +320,17 @@ const server = createServer(async (req, res) => {
       req.on('data', chunk => body += chunk);
       req.on('end', () => {
         try {
-          const { retentionDays = 30 } = JSON.parse(body || '{}');
+          const { retentionDays = 30, maxSizeMB = 400 } = JSON.parse(body || '{}');
           const days = typeof retentionDays === 'number' ? retentionDays : parseInt(retentionDays) || 30;
+          const sizeMB = typeof maxSizeMB === 'number' ? maxSizeMB : parseInt(maxSizeMB) || 400;
           const beforeBytes = db.getStats().dbSizeBytes;
-          db.cleanupOldSamples(days);
+          db.cleanupOldSamples(days, sizeMB);
           const afterStats = db.getStats();
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             success: true,
-            retentionDays,
+            retentionDays: days,
+            maxSizeMB: sizeMB,
             freedMB: ((beforeBytes - afterStats.dbSizeBytes) / (1024 * 1024)).toFixed(2),
             remainingSnapshots: afterStats.totalSnapshots,
             remainingMB: (afterStats.dbSizeBytes / (1024 * 1024)).toFixed(2),

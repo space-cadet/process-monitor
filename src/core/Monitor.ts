@@ -157,7 +157,7 @@ export class Monitor {
 
       if (ageTriggered || sizeTriggered) {
         console.log(`[Monitor] Auto-cleanup triggered: ${ageTriggered ? 'age' : ''} ${sizeTriggered ? 'size' : ''} (${sizeMB.toFixed(1)}MB)`);
-        this.db.cleanupOldSamples(this.config.retentionDays);
+        this.db.cleanupOldSamples(this.config.retentionDays, this.config.retentionSizeMB);
         const afterStats = this.db.getStats();
         const freedMB = (stats.dbSizeBytes - afterStats.dbSizeBytes) / (1024 * 1024);
         console.log(`[Monitor] Cleanup complete. Freed ${freedMB.toFixed(1)}MB. Now ${(afterStats.dbSizeBytes / (1024 * 1024)).toFixed(1)}MB`);

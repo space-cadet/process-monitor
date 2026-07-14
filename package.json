@@ -8,6 +8,8 @@
     "monitor": "tsx src/main.ts",
     "dashboard": "tsx src/web/server.ts",
     "show-data": "tsx src/show-data.ts",
+    "check-gateway": "tsx src/scripts/check-gateway-health.ts",
+    "check-anomalies": "tsx src/scripts/check-anomalies.ts",
     "start": "node dist/main.js",
     "test": "jest"
   },
