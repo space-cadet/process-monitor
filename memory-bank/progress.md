@@ -65,7 +65,7 @@
 
 - ~~`sendAlert()` stub~~ — **FIXED** 2026-06-18 (T2 implemented with real alerts)
 - ~~No config persistence~~ — **FIXED** 2026-06-18 (config.json + save/load)
-- ~~No DB size management~~ — **FIXED** 2026-06-18 (auto-cleanup + manual cleanup in Settings)
+- ~~No DB size management~~ — **FIXED** 2026-06-18 (auto-cleanup + manual cleanup in Settings) — **REFINED** 2026-07-15 (size-based cleanup with `maxSizeMB` + `VACUUM` + `process_spikes` FK cleanup)
 - ~~`techContext.md` was stale~~ — **FIXED** 2026-05-19
 - ~~Dashboard frontend regression~~ — **FIXED** 2026-06-10
 - ~~GitHub repo out of sync~~ — **FIXED** 2026-06-15
@@ -103,6 +103,7 @@
 | 2026-06-26 | T20 Phase 2: All detail views functional — Memory, Disk, Network, Battery, Status with real data | ✅ |
 | 2026-06-26 | T20 Phase 1: Clickable KPI cards with detail view switching (CPU→process list, others→placeholders) | ✅ |
 | 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
+| 2026-07-15 | T21: DB size-based cleanup fix — `cleanupOldSamples` now enforces `maxSizeMB`, fixes `process_spikes` FK, `check-anomalies` v12 compat | ✅ |
 | *Next* | T20 Phase 3: Backend APIs for per-volume disk, per-interface network, battery history | ⬜ |
 
 ### Current Blockers

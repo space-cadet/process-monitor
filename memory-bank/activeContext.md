@@ -1,8 +1,31 @@
 # Active Context
 
-*Last Updated: 2026-06-26 11:40 IST*
+*Last Updated: 2026-07-15 02:21 IST*
 
 ## Current Tasks
+
+### ✅ T21: DB Size-Based Cleanup — FIXED (2026-07-15)
+**Status:** Complete. Deployed and committed (`5ca8f1a`).
+
+**Problem:** `cleanupOldSamples(retentionDays)` only accepted 1 parameter, silently ignoring `maxSizeMB`. DB grew to 608MB (108MB over 500MB limit). Cleanup only ran by age (30 days), never by size.
+
+**Fixes:**
+1. `cleanupOldSamples(retentionDays, maxSizeMB?)` — optional size parameter
+2. After time-based cleanup, if DB still > `maxSizeMB`, deletes oldest snapshots in 500-record batches until under limit
+3. Runs `VACUUM` to reclaim disk space
+4. Added missing `process_spikes` foreign key cleanup (was causing `SQLITE_CONSTRAINT_FOREIGNKEY` errors)
+5. `Monitor.ts` passes `retentionSizeMB` (default 400MB) to cleanup
+6. Dashboard `/api/cleanup` accepts `maxSizeMB` parameter
+7. Bonus: fixed `check-anomalies.ts` — `better-sqlite3` v12 removed `.pluck()`, replaced with `.get()` + column alias
+
+**Files changed:**
+- `src/storage/TimeSeriesDB.ts` — cleanup method + size-based batch deletion
+- `src/core/Monitor.ts` — pass `retentionSizeMB` to cleanup
+- `src/web/server.ts` — `/api/cleanup` accepts `maxSizeMB`
+- `src/scripts/check-anomalies.ts` — replace `.pluck()` with `.get()`
+- `package.json` — bump `better-sqlite3` to `^12.0.0`
+
+---
 
 ### 🔄 T20: Dashboard Detail Views — Clickable KPI Cards
 **Status:** Phase 2 complete (all views functional with existing data). Phases 3-4 pending backend APIs.
@@ -169,8 +192,8 @@ Detailed implementation documentation for individual features:
 ## System Status
 - **Battery**: N/A (Linux VPS — no battery)
 - **Memory**: ~17% used (Linux VPS, 2GB RAM)
-- **DB**: `~/.procmon/monitor.db` — 83 snapshots, 532KB (fresh start on Linux VPS)
-- **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
+- **DB**: `~/.procmon/monitor.db` — ~600MB (will cleanup to ~400MB on next monitor cycle)
+- **Dashboard**: Running on http://localhost:3456
 - **Monitor**: Running via `npx tsx src/main.ts` on Linux VPS, collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
 - **Git Status**: All changes committed (commits `2127ae6`, `012d23b`, `db32fc0` pushed)
