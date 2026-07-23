@@ -57,6 +57,166 @@ const db = new TimeSeriesDB(dbPath);
 const collector = new SystemCollector();
 const deviceRegistry = new DeviceRegistry();
 
+type PsProcessInfo = {
+  pid: number;
+  ppid: number | null;
+  user: string;
+  state: string;
+  cpuPercent: number;
+  memoryPercent: number;
+  rssKB: number;
+  elapsed: string;
+  cpuTime: string;
+  comm: string;
+  command: string;
+  cpuSeconds: number;
+};
+
+function json(res: any, status: number, payload: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
+}
+
+function parseCpuTime(value: string): number {
+  const daySplit = value.trim().split('-');
+  let days = 0;
+  let time = value.trim();
+  if (daySplit.length === 2) {
+    days = parseInt(daySplit[0], 10) || 0;
+    time = daySplit[1];
+  }
+  const parts = time.split(':').map(p => parseInt(p, 10) || 0);
+  if (parts.length === 3) return days * 86400 + parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return days * 86400 + parts[0] * 60 + parts[1];
+  return days * 86400 + (parts[0] || 0);
+}
+
+function parsePsOutput(output: string): PsProcessInfo[] {
+  return output.split('\n').slice(1).map(line => {
+    const parts = line.trim().match(/^(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(.+?)\s{2,}(.*)$/);
+    if (!parts) return null;
+    const comm = parts[10] || '';
+    const command = parts[11] || comm;
+    return {
+      pid: Number(parts[1]),
+      ppid: Number(parts[2]),
+      user: parts[3],
+      state: parts[4],
+      cpuPercent: Number(parts[5]),
+      memoryPercent: Number(parts[6]),
+      rssKB: Number(parts[7]),
+      elapsed: parts[8],
+      cpuTime: parts[9],
+      comm,
+      command,
+      cpuSeconds: parseCpuTime(parts[9]),
+    };
+  }).filter(Boolean) as PsProcessInfo[];
+}
+
+function collectPsProcesses(): PsProcessInfo[] {
+  const output = execSync('ps -axo pid=,ppid=,user=,state=,pcpu=,pmem=,rss=,etime=,time=,comm=,command=', {
+    encoding: 'utf8',
+    timeout: 8000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return parsePsOutput(`PID PPID USER STATE PCPU PMEM RSS ELAPSED TIME COMM COMMAND\n${output}`);
+}
+
+function getProcessByPid(pid: number): PsProcessInfo | null {
+  return collectPsProcesses().find(p => p.pid === pid) || null;
+}
+
+function getParentChain(processes: PsProcessInfo[], pid: number): PsProcessInfo[] {
+  const byPid = new Map(processes.map(p => [p.pid, p]));
+  const chain: PsProcessInfo[] = [];
+  let current = byPid.get(pid);
+  const seen = new Set<number>();
+  while (current?.ppid && !seen.has(current.ppid)) {
+    seen.add(current.pid);
+    const parent = byPid.get(current.ppid);
+    if (!parent) break;
+    chain.push(parent);
+    current = parent;
+  }
+  return chain;
+}
+
+function inferProcessKind(p: PsProcessInfo | null): string {
+  const text = `${p?.comm || ''} ${p?.command || ''}`.toLowerCase();
+  if (!p) return 'unknown';
+  if (p.pid === 1 || text.includes('/sbin/launchd')) return 'system';
+  if (text.includes('.app/contents/')) return 'app';
+  if (text.includes('/library/launch') || text.includes('/usr/libexec/') || text.includes('/usr/sbin/')) return 'daemon';
+  if (text.includes('/bin/zsh') || text.includes('/bin/bash') || text.includes('/bin/sh')) return 'shell';
+  if (text.includes('helper')) return 'helper';
+  return 'process';
+}
+
+function findLaunchdHint(p: PsProcessInfo | null): string | null {
+  if (!p || process.platform !== 'darwin') return null;
+  const text = `${p.command} ${p.comm}`;
+  const matches = [
+    text.match(/\/Library\/Launch(?:Agents|Daemons)\/([^/\s]+\.plist)/),
+    text.match(/\/Users\/[^/\s]+\/Library\/LaunchAgents\/([^/\s]+\.plist)/),
+  ].filter(Boolean) as RegExpMatchArray[];
+  if (matches[0]) return matches[0][1].replace(/\.plist$/, '');
+  return null;
+}
+
+function inspectOpenFiles(pid: number): { ports: any[]; files: any[]; error?: string } {
+  try {
+    const output = execSync(`lsof -nP -p ${pid}`, {
+      encoding: 'utf8',
+      timeout: 5000,
+      maxBuffer: 2 * 1024 * 1024,
+    });
+    const ports: any[] = [];
+    const files: any[] = [];
+    for (const line of output.split('\n').slice(1)) {
+      if (!line.trim()) continue;
+      const cols = line.trim().split(/\s+/);
+      const type = cols[4] || '';
+      const name = cols.slice(8).join(' ');
+      if (!name) continue;
+      if (type === 'IPv4' || type === 'IPv6') {
+        ports.push({ fd: cols[3], protocol: type, name });
+      } else if (files.length < 12 && !name.startsWith('/dev/') && !name.includes(' dyld shared cache ')) {
+        files.push({ fd: cols[3], type, name });
+      }
+    }
+    return { ports: ports.slice(0, 20), files };
+  } catch (err) {
+    return { ports: [], files: [], error: (err as Error).message };
+  }
+}
+
+async function buildCpuIntervalProfile(ms: number): Promise<any[]> {
+  const durationMs = Math.min(Math.max(ms, 1000), 10000);
+  const before = collectPsProcesses();
+  await new Promise(resolve => setTimeout(resolve, durationMs));
+  const after = collectPsProcesses();
+  const beforeByPid = new Map(before.map(p => [p.pid, p]));
+  return after.map(p => {
+    const prev = beforeByPid.get(p.pid);
+    const cpuSeconds = prev ? Math.max(0, p.cpuSeconds - prev.cpuSeconds) : 0;
+    return {
+      pid: p.pid,
+      name: p.comm.split('/').pop() || p.comm,
+      user: p.user,
+      command: p.command,
+      cpuSeconds,
+      avgCpuPercent: (cpuSeconds / (durationMs / 1000)) * 100,
+      currentCpuPercent: p.cpuPercent,
+      memoryPercent: p.memoryPercent,
+      rssMB: p.rssKB / 1024,
+      kind: inferProcessKind(p),
+    };
+  }).filter(p => p.cpuSeconds > 0 || p.currentCpuPercent > 1)
+    .sort((a, b) => b.cpuSeconds - a.cpuSeconds || b.currentCpuPercent - a.currentCpuPercent)
+    .slice(0, 25);
+}
+
 // MIME types
 const mimeTypes: Record<string, string> = {
   '.html': 'text/html',
@@ -241,6 +401,84 @@ const server = createServer(async (req, res) => {
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/process-forensics') {
+    try {
+      const pid = parseInt(url.searchParams.get('pid') || '', 10);
+      const name = url.searchParams.get('name') || '';
+      if (!Number.isFinite(pid) && !name.trim()) {
+        json(res, 400, { error: 'pid or name is required' });
+        return;
+      }
+      const processes = collectPsProcesses();
+      const live = Number.isFinite(pid)
+        ? processes.find(p => p.pid === pid)
+        : processes.find(p => (p.comm.split('/').pop() || p.comm) === name || p.command.includes(name));
+      const historyName = name || (live?.comm.split('/').pop() || live?.comm || '');
+      const history = historyName ? db.getProcessHistory(historyName, Date.now() - 30 * 60000) : [];
+      const open = live ? inspectOpenFiles(live.pid) : { ports: [], files: [] };
+      const parentChain = live ? getParentChain(processes, live.pid).slice(0, 8) : [];
+      const latestCpu = history.length ? history[history.length - 1].cpu_percent : live?.cpuPercent || 0;
+      const avgCpu = history.length
+        ? history.reduce((sum, h) => sum + (h.cpu_percent || 0), 0) / history.length
+        : live?.cpuPercent || 0;
+      const findings = [
+        !live ? { severity: 'warning', label: 'Not currently running', detail: 'Historical samples exist, but no matching live process was found.' } : null,
+        live && latestCpu > 50 ? { severity: 'warning', label: 'High live CPU', detail: `Latest CPU sample is ${latestCpu.toFixed(1)}%.` } : null,
+        live && avgCpu > 25 ? { severity: 'warning', label: 'Sustained CPU load', detail: `Average CPU over recent samples is ${avgCpu.toFixed(1)}%.` } : null,
+        live && !findLaunchdHint(live) && inferProcessKind(live) === 'daemon' ? { severity: 'info', label: 'Daemon without label', detail: 'No launchd label was inferred from the current command line.' } : null,
+        open.error ? { severity: 'info', label: 'Open files limited', detail: open.error } : null,
+      ].filter(Boolean);
+
+      json(res, 200, {
+        query: { pid: Number.isFinite(pid) ? pid : null, name },
+        identity: live ? {
+          pid: live.pid,
+          ppid: live.ppid,
+          user: live.user,
+          state: live.state,
+          cpuPercent: live.cpuPercent,
+          memoryPercent: live.memoryPercent,
+          rssMB: live.rssKB / 1024,
+          elapsed: live.elapsed,
+          cpuTime: live.cpuTime,
+          executable: live.comm,
+          command: live.command,
+          kind: inferProcessKind(live),
+          launchdLabel: findLaunchdHint(live),
+        } : null,
+        parentChain: parentChain.map(p => ({
+          pid: p.pid,
+          name: p.comm.split('/').pop() || p.comm,
+          command: p.command,
+          kind: inferProcessKind(p),
+        })),
+        openFiles: open.files,
+        ports: open.ports,
+        recent: {
+          samples: history.length,
+          avgCpu,
+          peakCpu: history.length ? Math.max(...history.map(h => h.cpu_percent || 0)) : live?.cpuPercent || 0,
+          latestCpu,
+        },
+        findings,
+      });
+    } catch (err) {
+      json(res, 500, { error: (err as Error).message });
+    }
+    return;
+  }
+
+  if (pathname === '/api/process-cpu-profile') {
+    try {
+      const seconds = parseFloat(url.searchParams.get('seconds') || '5');
+      const profile = await buildCpuIntervalProfile(seconds * 1000);
+      json(res, 200, { seconds: Math.min(Math.max(seconds, 1), 10), processes: profile });
+    } catch (err) {
+      json(res, 500, { error: (err as Error).message });
     }
     return;
   }
@@ -612,6 +850,46 @@ const server = createServer(async (req, res) => {
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/analysis/troublesome-processes') {
+    try {
+      const rows = db.db.prepare(`
+        SELECT
+          ps.name,
+          COUNT(*) as samples,
+          ROUND(AVG(ps.cpu_percent), 1) as avgCpu,
+          ROUND(MAX(ps.cpu_percent), 1) as peakCpu,
+          ROUND(AVG(ps.memory_percent), 2) as avgMemory,
+          COUNT(DISTINCT ps.pid) as pidCount,
+          MAX(s.timestamp) as lastSeen
+        FROM process_samples ps
+        JOIN snapshots s ON ps.snapshot_id = s.id
+        WHERE s.timestamp > (strftime('%s', 'now') - 604800) * 1000
+        GROUP BY ps.name
+        HAVING peakCpu > 40 OR avgCpu > 15 OR pidCount > 5
+        ORDER BY avgCpu DESC, peakCpu DESC
+        LIMIT 30
+      `).all();
+      json(res, 200, rows.map((r: any) => ({
+        name: r.name,
+        samples: r.samples,
+        avgCpu: r.avgCpu,
+        peakCpu: r.peakCpu,
+        avgMemory: r.avgMemory,
+        pidCount: r.pidCount,
+        lastSeen: r.lastSeen,
+        flags: [
+          r.avgCpu > 25 ? 'sustained-cpu' : null,
+          r.peakCpu > 80 ? 'high-peak' : null,
+          r.pidCount > 5 ? 'many-pids' : null,
+          ['node', 'plugin-container'].includes(String(r.name).toLowerCase()) ? 'ambiguous-name' : null,
+        ].filter(Boolean),
+      })));
+    } catch (err) {
+      json(res, 500, { error: (err as Error).message });
     }
     return;
   }
@@ -1039,8 +1317,13 @@ const server = createServer(async (req, res) => {
   if (pathname === '/api/sleep-wake-events') {
     try {
       const since = url.searchParams.get('since') || '24h';
-      const sinceMs = since === '7d' ? 7 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
-      const cutoff = Date.now() - sinceMs;
+      let cutoff: number;
+      if (/^\d+$/.test(since)) {
+        cutoff = parseInt(since, 10);
+      } else {
+        const sinceMs = since === '7d' ? 7 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
+        cutoff = Date.now() - sinceMs;
+      }
       const stmt = db.db.prepare(`
         SELECT * FROM sleep_wake_events
         WHERE timestamp > ?
@@ -1073,7 +1356,7 @@ const server = createServer(async (req, res) => {
 });
 
 const PORT = parseInt(process.env.PORT || '3456', 10);
-const HOST = '0.0.0.0';
+const HOST = process.env.HOST || '0.0.0.0';
 
 server.listen(PORT, HOST, () => {
   console.log(`[Dashboard] Server running on http://${HOST}:${PORT}`);

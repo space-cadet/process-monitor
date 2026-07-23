@@ -1,8 +1,8 @@
 # Progress Report: process-monitor
 
-*Last Updated: 2026-06-26 11:40 IST*
+*Last Updated: 2026-07-23 10:07:03 IST*
 
-## Project Status: T1-T17 Complete + Cross-Platform Fixes; T5 (Swift), T11 (NL Search), T14 (ML) Remaining
+## Project Status: T1-T17 Complete + Cross-Platform Fixes; T22 First Forensics Slice Implemented
 
 ### What Works
 
@@ -50,11 +50,19 @@
   - `web/public/app.js` — battery UI shows "No battery" / "Desktop / Server" on battery-less machines instead of `0%`
   - **Disk usage fix (2026-06-26):** `SystemCollector.ts` — on macOS Catalina+, prefer `/System/Volumes/Data` (data volume) over `/` (read-only system volume). Fixes bug where MacBooks showed ~20% usage when actually ~80% full.
   - Repo renamed: `mac-process-monitor` → `process-monitor` on GitHub and locally
+- **T22 — Forensic Process Identification First Slice**: 🔄 IN PROGRESS (2026-07-23)
+  - `/api/process-forensics` — live identity, parent chain, recent CPU summary, findings, listener ports, open files
+  - `/api/process-cpu-profile` — bounded CPU interval profile by cumulative CPU-time deltas
+  - `/api/analysis/troublesome-processes` — initial investigation queue
+  - Process modal forensic panel — Identity, Ownership, Findings, Listener Ports, Open Files
+  - Analysis defaults and Reports defaults now auto-load useful content
+  - Fixed Recent Drain Events rendering and Sleep range handling
 
 ### What's Left to Build
 
 | Priority | Task | Description | Est. Effort |
 |----------|------|-------------|-------------|
+| ⚡ HIGH | T22 | Persist process identity/provenance; add full macOS launchd/plist/sample/fs_usage adapter; Linux/Windows adapters later | 8-12h |
 | ⚡ HIGH | T20 | Dashboard Detail Views — clickable KPI cards switching context-aware detail panel | 6-8h |
 | ⚡ MEDIUM | T11a-d | Natural Language Search — decomposed into 4 beads subtasks (see workspace beads queue) | 4-5h total |
 | 🔮 LOW | T14 | Anomaly Detection with ML | 6-8h |
@@ -104,7 +112,9 @@
 | 2026-06-26 | T20 Phase 1: Clickable KPI cards with detail view switching (CPU→process list, others→placeholders) | ✅ |
 | 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
 | 2026-07-15 | T21: DB size-based cleanup fix — `cleanupOldSamples` now enforces `maxSizeMB`, fixes `process_spikes` FK, `check-anomalies` v12 compat | ✅ |
-| *Next* | T20 Phase 3: Backend APIs for per-volume disk, per-interface network, battery history | ⬜ |
+| 2026-07-23 | T22: Forensic process identification plan recorded — portable core, macOS-first adapter, Linux/Windows adapter boundary | 🔄 |
+| 2026-07-23 | T22 first implementation slice — live process forensics, CPU interval profiler, Troublesome Processes UI, and UI repair pass | 🔄 |
+| *Next* | T22 implementation: persistent provenance plus full macOS launchd/plist/sample/fs_usage mapping | ⬜ |
 
 ### Current Blockers
 
@@ -117,5 +127,6 @@
 - Config is now fully editable via dashboard and persists to `~/.procmon/config.json`
 - Alert system supports both Telegram and macOS native notifications with automatic fallback
 - **Cross-platform:** Now runs on macOS (primary) and Linux (VPS-tested). Windows support is theoretical (no-op for sleep/battery, rest should work)
+- **Forensic process identification:** First live/on-demand slice is implemented. Persistent provenance and full macOS launchd/plist/sample/fs_usage mapping remain next.
 - **Repo location:** `code/process-monitor/` (renamed from `mac-process-monitor` 2026-06-24)
 - **GitHub:** `https://github.com/space-cadet/process-monitor`

@@ -1,20 +1,28 @@
 # Session Cache
 
 *Created: 2026-06-26 07:39:11 IST*
-*Last Updated: 2026-06-26 07:39:11 IST*
+*Last Updated: 2026-07-23 10:07:03 IST*
 
-**Started**: 2026-06-26 06:53:06 IST
-**Focus Task**: T20: Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
-**Session File**: `sessions/2026-06-26-morning.md`
-**Status**: 🔄 Active: 1, Paused: 0, Completed: 0
+**Started**: 2026-07-23 09:36:23 IST
+**Focus Task**: T22: Design: Forensic process identification layer with portable core and platform-specific adapters for troublesome process mapping.
+**Session File**: `sessions/2026-07-23-morning.md`
+**Status**: 🔄 Active: 2, Paused: 0, Completed: 1
 
 ## Overview
 
-- Active: 1 | Paused: 0 | Completed: 0
-- Last Session: 2026-06-26
+- Active: 2 | Paused: 0 | Completed: 1
+- Last Session: 2026-07-23
 - Current Period: morning
 
 ## Active Tasks
+
+### T22: Design: Forensic process identification layer with portable core and platform-specific adapters for troublesome process mapping.
+**Status:** 🔄 **IN PROGRESS**
+**Started:** 2026-07-23
+**Context**: Plan for a forensic layer that can properly map and identify troublesome processes beyond simple CPU/memory trends.
+**Progress**:
+Recorded plan for portable core plus platform-specific adapters. Portable core covers interval CPU profiling, stable process identity, parent tree, storage, CLI, and dashboard reports. macOS adapter is first target with launchd, plist audit, lsof, sample, fs_usage, and optional signature/bundle/package attribution. Linux and Windows adapters remain future work using `/proc`/systemd/cgroups and WMI/Services/Scheduled Tasks/ETW respectively.
+Implemented first live forensics/UI repair slice: process-forensics endpoint, CPU interval profile endpoint, Troublesome Processes analysis, process modal forensic panel, fixed drain event rendering, fixed Sleep range handling, auto-loaded Analysis/Reports defaults, cleaned report rendering, and added loopback-friendly `HOST` configuration.
 
 ### T20: Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
 **Status:** 🔄 **IN PROGRESS**
@@ -28,7 +36,8 @@ Phase 2 complete: All detail views implemented with existing snapshot data. Memo
 
 ## Next Session Focus
 
-1. T20: Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
+1. T22: Forensic Process Identification Layer — persist identity/provenance and implement full macOS launchd/plist/sample/fs_usage adapter.
+2. T20: Dashboard Detail Views — backend APIs for deeper subsystem detail views.
 
 ## System Status
 

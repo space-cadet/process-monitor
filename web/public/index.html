@@ -323,6 +323,20 @@
                   <div class="preset-desc">Avg/peak/stdev per process</div>
                 </div>
               </button>
+              <button class="preset-btn" onclick="runPresetQuery('troublesomeProcesses')">
+                <span class="preset-icon">⚠️</span>
+                <div class="preset-info">
+                  <div class="preset-name">Troublesome Processes</div>
+                  <div class="preset-desc">High CPU, churn, ambiguous owners</div>
+                </div>
+              </button>
+              <button class="preset-btn" onclick="runCpuIntervalProfile(5)">
+                <span class="preset-icon">⏱</span>
+                <div class="preset-info">
+                  <div class="preset-name">5s CPU Profile</div>
+                  <div class="preset-desc">Rank by CPU seconds now</div>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -528,6 +542,7 @@
       </div>
       <div class="modal-body">
         <div class="modal-stats" id="modalStats"></div>
+        <div class="forensics-panel" id="modalForensics"></div>
         <div class="modal-chart-wrapper">
           <div class="modal-chart-title">CPU History (30 min)</div>
           <div class="modal-chart" id="modalChart"></div>

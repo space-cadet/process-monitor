@@ -129,7 +129,7 @@ function renderMemoryView() {
   }
 
   const processRows = processes.map(p => `
-    <tr onclick="showProcessModal('${p.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+    <tr onclick="showProcessModal('${p.name.replace(/'/g, "\\'")}', ${p.pid})" style="cursor: pointer;">
       <td>
         <div class="process-name">
           <div class="process-icon">◆</div>
@@ -378,7 +378,7 @@ function renderBatteryView() {
 
     if (procsWithEnergy.length > 0) {
       energyRows = procsWithEnergy.map(p => `
-        <tr onclick="showProcessModal('${p.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+        <tr onclick="showProcessModal('${p.name.replace(/'/g, "\\'")}', ${p.pid})" style="cursor: pointer;">
           <td>
             <div class="process-name">
               <div class="process-icon">◆</div>
@@ -542,6 +542,10 @@ function switchMainTab(tab) {
 
   if (tab === 'analysis') {
     loadQuickStats();
+    if (!currentAnalysisData) runPresetQuery('troublesomeProcesses');
+  } else if (tab === 'reports') {
+    const reportContent = document.getElementById('reportContent');
+    if (reportContent && reportContent.innerText.includes('Select a date')) loadReport();
   } else if (tab === 'sleep') {
     loadSleepWakeEvents(7);
   } else if (tab === 'devices') {
@@ -596,6 +600,11 @@ const PRESET_QUERIES = {
     title: 'Process CPU Consistency',
     endpoint: '/api/analysis/process-stats',
     description: 'Average, peak, and standard deviation per process'
+  },
+  troublesomeProcesses: {
+    title: 'Troublesome Processes',
+    endpoint: '/api/analysis/troublesome-processes',
+    description: 'High CPU, process churn, and ambiguous process names'
   }
 };
 
@@ -659,6 +668,9 @@ function renderAnalysisResults(data, queryKey) {
       break;
     case 'processConsistency':
       renderProcessConsistency(data, container);
+      break;
+    case 'troublesomeProcesses':
+      renderTroublesomeProcesses(data, container);
       break;
     case 'diskTrend':
       renderDiskTrend(data, container);
@@ -825,15 +837,16 @@ function renderProcessConsistency(data, container) {
   `;
 }
 
-function renderProcessConsistency(data, container) {
-  const rows = data.slice(0, 20).map((d, i) => `
+function renderTroublesomeProcesses(data, container) {
+  const rows = data.slice(0, 30).map((d, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td><strong>${d.name}</strong></td>
+      <td><strong>${escapeHtml(d.name)}</strong></td>
       <td>${d.avgCpu?.toFixed(1) || '--'}%</td>
       <td>${d.peakCpu?.toFixed(1) || '--'}%</td>
-      <td>${d.stdCpu?.toFixed(2) || '--'}</td>
+      <td>${d.pidCount || 0}</td>
       <td>${d.samples || 0}</td>
+      <td>${(d.flags || []).map(f => `<span class="flag-chip">${escapeHtml(f)}</span>`).join(' ') || '<span class="muted">none</span>'}</td>
     </tr>
   `).join('');
 
@@ -841,10 +854,59 @@ function renderProcessConsistency(data, container) {
     <div class="analysis-table-wrapper">
       <table class="analysis-table">
         <thead>
-          <tr><th>#</th><th>Process</th><th>Avg CPU</th><th>Peak CPU</th><th>Std Dev</th><th>Samples</th></tr>
+          <tr><th>#</th><th>Process</th><th>Avg CPU</th><th>Peak CPU</th><th>PIDs</th><th>Samples</th><th>Flags</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
+    </div>
+    <div class="analysis-summary">
+      <p><strong>Use this as the investigation queue:</strong> rows with ambiguous names or sustained CPU should open through the process table's Investigate action.</p>
+    </div>
+  `;
+}
+
+async function runCpuIntervalProfile(seconds = 5) {
+  currentAnalysisData = null;
+  currentAnalysisTitle = `${seconds}s CPU Interval Profile`;
+  document.getElementById('analysisTitle').textContent = currentAnalysisTitle;
+  document.getElementById('analysisContent').innerHTML =
+    `<div class="analysis-loading">Profiling live CPU for ${seconds} seconds...</div>`;
+  try {
+    const res = await fetch(`${API_BASE}/api/process-cpu-profile?seconds=${encodeURIComponent(seconds)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    currentAnalysisData = data.processes || [];
+    renderCpuIntervalProfile(data, document.getElementById('analysisContent'));
+  } catch (err) {
+    document.getElementById('analysisContent').innerHTML =
+      `<div class="analysis-error">Error: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderCpuIntervalProfile(data, container) {
+  const rows = (data.processes || []).map((p, i) => `
+    <tr onclick="showProcessModal('${String(p.name).replace(/'/g, "\\'")}', ${p.pid})" style="cursor:pointer;">
+      <td>${i + 1}</td>
+      <td><strong>${escapeHtml(p.name)}</strong></td>
+      <td>${p.pid}</td>
+      <td>${escapeHtml(p.user || '--')}</td>
+      <td>${formatNumber(p.cpuSeconds, 2)}s</td>
+      <td>${formatNumber(p.avgCpuPercent, 1)}%</td>
+      <td><span class="flag-chip">${escapeHtml(p.kind || 'process')}</span></td>
+    </tr>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="analysis-table-wrapper">
+      <table class="analysis-table">
+        <thead>
+          <tr><th>#</th><th>Process</th><th>PID</th><th>User</th><th>CPU Seconds</th><th>Avg CPU</th><th>Kind</th></tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="7">No CPU activity recorded in this interval.</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div class="analysis-summary">
+      <p><strong>Interval:</strong> ${formatNumber(data.seconds, 1)} seconds. CPU seconds are measured from cumulative process CPU time deltas, so this ranks actual work done during the profile window.</p>
     </div>
   `;
 }
@@ -1646,7 +1708,7 @@ function renderProcesses() {
   }).slice(0, 10);
 
   tbody.innerHTML = sorted.map(p => `
-    <tr onclick="showProcessModal('${p.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+    <tr onclick="showProcessModal('${p.name.replace(/'/g, "\\'")}', ${p.pid})" style="cursor: pointer;">
       <td>
         <div class="process-name">
           <div class="process-icon">\u25c6</div>
@@ -1887,9 +1949,10 @@ function renderDrainEvents(events) {
   }
 
   container.innerHTML = events.map(e => {
-    const start = new Date(e.startTime).toLocaleString();
-    const end = new Date(e.endTime).toLocaleString();
-    const procs = e.topProcesses?.map(p => `${p.name} (${p.cpuPercent.toFixed(0)}%)`).join(', ') || 'N/A';
+    const event = normalizeDrainEvent(e);
+    const start = new Date(event.startTime).toLocaleString();
+    const end = new Date(event.endTime).toLocaleString();
+    const procs = event.topProcesses?.map(p => `${p.name} (${formatNumber(p.cpuPercent, 0)}%)`).join(', ') || 'N/A';
 
     return `
       <div class="drain-item">
@@ -1898,7 +1961,7 @@ function renderDrainEvents(events) {
           <p>${start} \u2014 ${end}</p>
         </div>
         <div class="drain-meta">
-          <div class="drain-rate">${e.drainRate.toFixed(1)}<span>%/min</span></div>
+          <div class="drain-rate">${formatNumber(event.drainRate, 1)}<span>%/min</span></div>
           <div class="drain-processes">${procs}</div>
         </div>
       </div>
@@ -1906,14 +1969,38 @@ function renderDrainEvents(events) {
   }).join('');
 }
 
+function formatNumber(value, digits = 1, fallback = '--') {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(digits) : fallback;
+}
+
+function normalizeDrainEvent(e) {
+  let topProcesses = e.topProcesses || e.top_processes || [];
+  if (!Array.isArray(topProcesses) && e.top_processes_json) {
+    try { topProcesses = JSON.parse(e.top_processes_json); } catch { topProcesses = []; }
+  }
+  return {
+    startTime: e.startTime ?? e.start_time,
+    endTime: e.endTime ?? e.end_time,
+    startPercent: e.startPercent ?? e.start_percent,
+    endPercent: e.endPercent ?? e.end_percent,
+    drainRate: e.drainRate ?? e.drain_rate,
+    durationMinutes: e.durationMinutes ?? e.duration_minutes,
+    wasCharging: e.wasCharging ?? Boolean(e.was_charging),
+    topProcesses,
+  };
+}
+
 // Process Detail Modal
 let currentModalProcess = null;
 
-function showProcessModal(processName) {
+function showProcessModal(processName, pid = null) {
   currentModalProcess = processName;
   document.getElementById('modalTitle').textContent = processName;
+  document.getElementById('modalForensics').innerHTML = '<div class="analysis-loading">Inspecting process identity...</div>';
   document.getElementById('processModal').style.display = 'flex';
   loadProcessHistory(30);
+  loadProcessForensics(processName, pid);
 }
 
 function closeProcessModal() {
@@ -1944,6 +2031,75 @@ async function loadProcessHistory(minutes) {
     console.error('Process history error:', err);
     document.getElementById('modalStats').innerHTML = `<div style="color: var(--text-dim);">Error loading data</div>`;
   }
+}
+
+async function loadProcessForensics(processName, pid) {
+  const container = document.getElementById('modalForensics');
+  try {
+    const params = new URLSearchParams();
+    if (pid) params.set('pid', pid);
+    if (processName) params.set('name', processName);
+    const res = await fetch(`${API_BASE}/api/process-forensics?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderProcessForensics(data);
+  } catch (err) {
+    container.innerHTML = `<div class="analysis-error">Forensics unavailable: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderProcessForensics(data) {
+  const container = document.getElementById('modalForensics');
+  const id = data.identity;
+  const findings = data.findings || [];
+  const parents = data.parentChain || [];
+  const ports = data.ports || [];
+  const files = data.openFiles || [];
+
+  const findingHtml = findings.length
+    ? findings.map(f => `<div class="finding ${escapeHtml(f.severity)}"><strong>${escapeHtml(f.label)}</strong><span>${escapeHtml(f.detail)}</span></div>`).join('')
+    : '<div class="finding ok"><strong>No immediate findings</strong><span>No obvious ownership or CPU warning from the current evidence.</span></div>';
+
+  container.innerHTML = `
+    <div class="forensics-grid">
+      <div class="forensics-section">
+        <h4>Identity</h4>
+        ${id ? `
+          <dl class="forensics-list">
+            <dt>PID</dt><dd>${id.pid}</dd>
+            <dt>User</dt><dd>${escapeHtml(id.user)}</dd>
+            <dt>Kind</dt><dd><span class="flag-chip">${escapeHtml(id.kind)}</span></dd>
+            <dt>State</dt><dd>${escapeHtml(id.state || '--')}</dd>
+            <dt>Executable</dt><dd title="${escapeHtml(id.executable)}">${escapeHtml(id.executable || '--')}</dd>
+            <dt>Command</dt><dd title="${escapeHtml(id.command)}">${escapeHtml(id.command || '--')}</dd>
+          </dl>
+        ` : '<div class="muted">No matching live process found.</div>'}
+      </div>
+      <div class="forensics-section">
+        <h4>Ownership</h4>
+        <dl class="forensics-list">
+          <dt>Parent</dt><dd>${parents[0] ? `${escapeHtml(parents[0].name)} (${parents[0].pid})` : '--'}</dd>
+          <dt>Launchd</dt><dd>${id?.launchdLabel ? escapeHtml(id.launchdLabel) : '--'}</dd>
+          <dt>Recent avg</dt><dd>${formatNumber(data.recent?.avgCpu, 1)}% CPU</dd>
+          <dt>Recent peak</dt><dd>${formatNumber(data.recent?.peakCpu, 1)}% CPU</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="forensics-section">
+      <h4>Findings</h4>
+      <div class="findings-list">${findingHtml}</div>
+    </div>
+    <div class="forensics-grid">
+      <div class="forensics-section">
+        <h4>Listener Ports</h4>
+        ${ports.length ? ports.slice(0, 8).map(p => `<div class="forensics-line">${escapeHtml(p.name)}</div>`).join('') : '<div class="muted">No listener/socket evidence shown.</div>'}
+      </div>
+      <div class="forensics-section">
+        <h4>Open Files</h4>
+        ${files.length ? files.slice(0, 8).map(f => `<div class="forensics-line" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div>`).join('') : '<div class="muted">No file evidence shown.</div>'}
+      </div>
+    </div>
+  `;
 }
 
 function renderModalStats(stats) {
@@ -2141,14 +2297,17 @@ function exportCSV() {
     .then(events => {
       if (!events.length) return alert('No drain events to export');
       const headers = ['Start Time', 'End Time', 'Start %', 'End %', 'Drain Rate (%/min)', 'Duration (min)', 'Top Processes'];
-      const rows = events.map(e => [
-        new Date(e.startTime).toISOString(),
-        new Date(e.endTime).toISOString(),
-        e.startPercent, e.endPercent,
-        e.drainRate.toFixed(2),
-        e.durationMinutes.toFixed(1),
-        e.topProcesses?.map(p => `${p.name}:${p.cpuPercent.toFixed(1)}%`).join('; ') || ''
-      ]);
+      const rows = events.map(raw => {
+        const e = normalizeDrainEvent(raw);
+        return [
+          new Date(e.startTime).toISOString(),
+          new Date(e.endTime).toISOString(),
+          e.startPercent, e.endPercent,
+          formatNumber(e.drainRate, 2),
+          formatNumber(e.durationMinutes, 1),
+          e.topProcesses?.map(p => `${p.name}:${formatNumber(p.cpuPercent, 1)}%`).join('; ') || ''
+        ];
+      });
       const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -2339,34 +2498,47 @@ async function loadReport() {
 }
 
 function renderReport(markdown, container) {
-  // Simple markdown-to-HTML converter for report display
-  let html = markdown
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+  const lines = markdown.split('\n');
+  const blocks = [];
+  let tableRows = [];
+
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    const rows = tableRows.map((cells, idx) => {
+      const tag = idx === 0 ? 'th' : 'td';
+      return `<tr>${cells.map(c => `<${tag}>${formatInlineMarkdown(c)}</${tag}>`).join('')}</tr>`;
+    }).join('');
+    blocks.push(`<table class="analysis-table">${rows}</table>`);
+    tableRows = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line === '---') {
+      flushTable();
+      continue;
+    }
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+      if (!cells.every(c => /^[-:]+$/.test(c))) tableRows.push(cells);
+      continue;
+    }
+    flushTable();
+    if (line.startsWith('### ')) blocks.push(`<h3>${formatInlineMarkdown(line.slice(4))}</h3>`);
+    else if (line.startsWith('## ')) blocks.push(`<h2>${formatInlineMarkdown(line.slice(3))}</h2>`);
+    else if (line.startsWith('# ')) blocks.push(`<h1>${formatInlineMarkdown(line.slice(2))}</h1>`);
+    else if (line.startsWith('- ')) blocks.push(`<div class="report-bullet">${formatInlineMarkdown(line.slice(2))}</div>`);
+    else blocks.push(`<p>${formatInlineMarkdown(line)}</p>`);
+  }
+  flushTable();
+
+  container.innerHTML = `<div class="report-body">${blocks.join('')}</div>`;
+}
+
+function formatInlineMarkdown(value) {
+  return escapeHtml(String(value))
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\|.*\|/g, (line) => {
-      // Table row
-      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-        const cells = line.split('|').slice(1, -1).map(c => c.trim());
-        if (cells.every(c => /^[-:]+$/.test(c))) return ''; // separator row
-        return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
-      }
-      return line;
-    })
-    .replace(/\n/g, '<br>');
-
-  // Wrap table rows in table tags
-  html = html.replace(/(<tr>.*?<\/tr>)+/g, '<table class="analysis-table">$&</table>');
-
-  // Clean up empty paragraphs
-  html = html.replace(/<br><br>/g, '</p><p>').replace(/^/, '<p>').replace(/$/, '</p>');
-  html = html.replace(/<p><table/g, '<table').replace(/<\/table><\/p>/g, '</table>');
-  html = html.replace(/<p><h/g, '<h').replace(/<\/h([12])><\/p>/g, '</h$1>');
-  html = html.replace(/<p><br><\/p>/g, '');
-
-  container.innerHTML = `<div class="report-body" style="padding:20px;font-size:14px;line-height:1.6;">${html}</div>`;
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
 }
 
 function initSettingsAutoSave() {

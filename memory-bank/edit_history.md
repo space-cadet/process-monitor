@@ -1,8 +1,32 @@
 # Edit History
 
-*Last Updated: 2026-06-26 07:39:11 IST*
+*Last Updated: 2026-07-23 10:07:03 IST*
 
 ---
+
+## 2026-07-23
+
+#### 10:07:03 IST - T22: Implemented first process forensics and UI repair slice
+- Modified `src/web/server.ts` - Added live process forensics, CPU interval profile, Troublesome Processes analysis, Sleep range fix, and configurable `HOST`
+- Modified `web/public/app.js` - Fixed drain event rendering, auto-loaded Analysis/Reports defaults, added forensic modal panel, CPU interval profile UI, report renderer cleanup
+- Modified `web/public/index.html` - Added Troublesome Processes and CPU Profile actions plus process forensic panel container
+- Modified `web/public/styles.css` - Added forensic panel, findings, flag chip, and report body styles
+- Modified `package-lock.json` - Reconciled lockfile with existing `package.json` QR dependencies after `npm install`
+- Modified `memory-bank/tasks/T22.md` - Recorded implemented first slice and remaining limits
+- Modified `memory-bank/implementation-details/forensic-process-identification.md` - Updated plan with implemented routes, UI, validation, and known limits
+- Modified `memory-bank/activeContext.md` - Updated current T22 status and next steps
+- Modified `memory-bank/session_cache.md` - Updated session progress and next focus
+- Modified `memory-bank/sessions/2026-07-23-morning.md` - Added implementation and validation notes
+- Modified `memory-bank/progress.md` - Updated roadmap and status summary for T22 first slice
+
+#### 09:36:23 IST - T22: Recorded forensic process identification plan and cross-platform boundary
+- Created `memory-bank/tasks/T22.md` - New task for portable process identity plus platform-specific forensic adapters
+- Created `memory-bank/implementation-details/forensic-process-identification.md` - Plan for portable core, macOS adapter, Linux adapter, and Windows adapter
+- Created `memory-bank/sessions/2026-07-23-morning.md` - Session log for the plan update
+- Modified `memory-bank/tasks.md` - Added T22 to active task registry and updated counts
+- Modified `memory-bank/activeContext.md` - Added current T22 context and platform decision
+- Modified `memory-bank/session_cache.md` - Updated focus task and active session context
+- Modified `memory-bank/progress.md` - Added T22 to roadmap, timeline, and notes
 
 ## 2026-06-26
 
@@ -22,4 +46,3 @@
 - Modified `web/public/app.js` - Modified web/public/app.js
 
 #### 06:53:06 IST - T20: Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
-

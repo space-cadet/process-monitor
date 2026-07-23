@@ -1,8 +1,31 @@
 # Active Context
 
-*Last Updated: 2026-07-15 02:21 IST*
+*Last Updated: 2026-07-23 10:07:03 IST*
 
 ## Current Tasks
+
+### 🔄 T22: Forensic Process Identification Layer — First Slice Implemented (2026-07-23)
+**Status:** Active. Initial live forensics and UI repair slice implemented; deeper persisted provenance and macOS launchd/plist adapter remain.
+
+**Context:** Live troubleshooting showed that the monitor can surface CPU and process trends, but cannot yet fully identify troublesome processes. The missing layer is forensic attribution: cumulative interval CPU, stable process identity, parent/service ownership, launchd/plist mapping, open files/listener ports, and on-demand stack/IO traces.
+
+**Platform decision:** Keep the architecture cross-platform by using a common evidence model and platform adapters. Implement macOS first because the current Sage/OpenClaw issues depend on `launchctl`, LaunchAgent/LaunchDaemon plists, `lsof`, `sample`, and `fs_usage`. Linux should map through `/proc`, `systemctl`, cgroups, `ss`/`lsof`, and optional tracing. Windows should map through WMI/PowerShell, Services, Scheduled Tasks, ETW/Event Logs, and handle/socket inspection.
+
+**Documentation added:**
+- `memory-bank/tasks/T22.md`
+- `memory-bank/implementation-details/forensic-process-identification.md`
+
+**Implemented first slice:**
+- Fixed current dashboard gaps: Recent Drain Events field mismatch, Sleep range mismatch, Analysis default blank state, Reports default blank state, duplicated Process Consistency renderer, and rough report markdown spacing.
+- Added `/api/process-forensics` for live process identity, parent chain, recent CPU summary, findings, listener ports, and open files.
+- Added `/api/process-cpu-profile` for bounded interval CPU profiling by cumulative CPU-time deltas.
+- Added `/api/analysis/troublesome-processes` and UI presets/actions for Troublesome Processes and 5-second CPU Profile.
+- Added process modal forensic sections for Identity, Ownership, Findings, Listener Ports, and Open Files.
+- Made dashboard host configurable with `HOST`, preserving default `0.0.0.0` while enabling loopback-only verification.
+
+**Validation:** `npm run build`, `git diff --check`, and browser smoke test on `HOST=127.0.0.1 PORT=3457 ./node_modules/.bin/tsx src/web/server.ts`.
+
+---
 
 ### ✅ T21: DB Size-Based Cleanup — FIXED (2026-07-15)
 **Status:** Complete. Deployed and committed (`5ca8f1a`).
@@ -171,6 +194,7 @@ See workspace beads queue for full details.
 - **T3: Query Interface** (2026-06-10)
 
 ## Next Steps
+- **T22:** Persist process identity/provenance into SQLite and implement full macOS launchd/plist validation with `launchctl`, plist scans, `sample`, and `fs_usage`.
 - **T20:** Dashboard Detail Views — clickable KPI cards (design complete, implement Phase 1)
 - **T11a-d:** Natural Language Search subtasks (in beads queue)
 - **T5:** Swift Menubar App — Native macOS experience
