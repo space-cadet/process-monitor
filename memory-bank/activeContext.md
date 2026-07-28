@@ -1,8 +1,25 @@
 # Active Context
 
-*Last Updated: 2026-07-23 10:07:03 IST*
+*Last Updated: 2026-07-28 17:30 IST*
 
 ## Current Tasks
+
+### 🔄 T22: Forensic Process Identification Layer — First Slice Implemented (2026-07-23)
+**Status:** Active. Initial live forensics and UI repair slice implemented; deeper persisted provenance and macOS launchd/plist adapter remain.
+
+---
+
+### ✅ Workspace Scripts Convention Established (2026-07-28)
+**Status:** Complete.
+
+**Problem:** Cron job scripts (`check-and-start.sh`) were running directly from the repo folder. If the MacBook was wiped, the workspace scripts would be lost even though repos were backed up on GitHub.
+
+**Solution:** 
+- `procmon-check-and-start.sh` now lives PHYSICALLY in `~/.openclaw/workspace/scripts/` (live copy)
+- Backup copy remains in `code/process-monitor/check-and-start.sh` (git-tracked)
+- Script header added: "⚠️ WORKSPACE COPY (LIVE) — If you edit this, also copy to repo and commit"
+- The process-monitor cron runs the workspace copy, not the repo copy
+- Same convention applied to bot2bot scripts (`bot2bot-health-check.sh`, `bot2bot-start-webhook.sh`)
 
 ### 🔄 T22: Forensic Process Identification Layer — First Slice Implemented (2026-07-23)
 **Status:** Active. Initial live forensics and UI repair slice implemented; deeper persisted provenance and macOS launchd/plist adapter remain.

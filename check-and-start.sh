@@ -1,5 +1,13 @@
 #!/bin/bash
 # Check if process-monitor and dashboard are running, start if not
+#
+# ⚠️ WORKSPACE COPY (LIVE)
+# This script lives in ~/.openclaw/workspace/scripts/ — this is the copy that runs.
+# There is also a copy in code/process-monitor/ which is the git-tracked backup.
+#
+# If you edit this script, also copy it to the repo and commit:
+#   cp ~/.openclaw/workspace/scripts/procmon-check-and-start.sh ~/.openclaw/workspace/code/process-monitor/check-and-start.sh
+#   cd ~/.openclaw/workspace/code/process-monitor && git add check-and-start.sh && git commit
 
 MONITOR_LOG="/Users/sage/.openclaw/workspace/code/process-monitor/logs/auto-start.log"
 RESTARTED=0

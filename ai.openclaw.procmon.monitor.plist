@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.openclaw.procmon.monitor</string>
+  <key>UserName</key>
+  <string>sage</string>
+  <key>Comment</key>
+  <string>process-monitor — battery drain + spike detection</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ExitTimeOut</key>
+  <integer>20</integer>
+  <key>ProcessType</key>
+  <string>Standard</string>
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+  <key>Umask</key>
+  <integer>63</integer>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/sage/.nvm/versions/node/v22.22.3/bin/tsx</string>
+    <string>src/main.ts</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/sage/.openclaw/workspace/code/process-monitor</string>
+  <key>StandardInPath</key>
+  <string>/dev/null</string>
+  <key>StandardOutPath</key>
+  <string>/Users/sage/.openclaw/workspace/code/process-monitor/logs/monitor.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/sage/.openclaw/workspace/code/process-monitor/logs/monitor-error.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/sage</string>
+    <key>PATH</key>
+    <string>/Users/sage/.nvm/versions/node/v22.22.3/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>
