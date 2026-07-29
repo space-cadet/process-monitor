@@ -1,90 +1,31 @@
 # Active Context
 
-*Last Updated: 2026-07-28 17:30 IST*
+*Last Updated: 2026-06-26 11:40 IST*
 
 ## Current Tasks
 
-### 🔄 T22: Forensic Process Identification Layer — First Slice Implemented (2026-07-23)
-**Status:** Active. Initial live forensics and UI repair slice implemented; deeper persisted provenance and macOS launchd/plist adapter remain.
-
----
-
-### ✅ Workspace Scripts Convention Established (2026-07-28)
-**Status:** Complete.
-
-**Problem:** Cron job scripts (`check-and-start.sh`) were running directly from the repo folder. If the MacBook was wiped, the workspace scripts would be lost even though repos were backed up on GitHub.
-
-**Solution:** 
-- `procmon-check-and-start.sh` now lives PHYSICALLY in `~/.openclaw/workspace/scripts/` (live copy)
-- Backup copy remains in `code/process-monitor/check-and-start.sh` (git-tracked)
-- Script header added: "⚠️ WORKSPACE COPY (LIVE) — If you edit this, also copy to repo and commit"
-- The process-monitor cron runs the workspace copy, not the repo copy
-- Same convention applied to bot2bot scripts (`bot2bot-health-check.sh`, `bot2bot-start-webhook.sh`)
-
-### 🔄 T22: Forensic Process Identification Layer — First Slice Implemented (2026-07-23)
-**Status:** Active. Initial live forensics and UI repair slice implemented; deeper persisted provenance and macOS launchd/plist adapter remain.
-
-**Context:** Live troubleshooting showed that the monitor can surface CPU and process trends, but cannot yet fully identify troublesome processes. The missing layer is forensic attribution: cumulative interval CPU, stable process identity, parent/service ownership, launchd/plist mapping, open files/listener ports, and on-demand stack/IO traces.
-
-**Platform decision:** Keep the architecture cross-platform by using a common evidence model and platform adapters. Implement macOS first because the current Sage/OpenClaw issues depend on `launchctl`, LaunchAgent/LaunchDaemon plists, `lsof`, `sample`, and `fs_usage`. Linux should map through `/proc`, `systemctl`, cgroups, `ss`/`lsof`, and optional tracing. Windows should map through WMI/PowerShell, Services, Scheduled Tasks, ETW/Event Logs, and handle/socket inspection.
-
-**Documentation added:**
-- `memory-bank/tasks/T22.md`
-- `memory-bank/implementation-details/forensic-process-identification.md`
-
-**Implemented first slice:**
-- Fixed current dashboard gaps: Recent Drain Events field mismatch, Sleep range mismatch, Analysis default blank state, Reports default blank state, duplicated Process Consistency renderer, and rough report markdown spacing.
-- Added `/api/process-forensics` for live process identity, parent chain, recent CPU summary, findings, listener ports, and open files.
-- Added `/api/process-cpu-profile` for bounded interval CPU profiling by cumulative CPU-time deltas.
-- Added `/api/analysis/troublesome-processes` and UI presets/actions for Troublesome Processes and 5-second CPU Profile.
-- Added process modal forensic sections for Identity, Ownership, Findings, Listener Ports, and Open Files.
-- Made dashboard host configurable with `HOST`, preserving default `0.0.0.0` while enabling loopback-only verification.
-
-**Validation:** `npm run build`, `git diff --check`, and browser smoke test on `HOST=127.0.0.1 PORT=3457 ./node_modules/.bin/tsx src/web/server.ts`.
-
----
-
-### ✅ T21: DB Size-Based Cleanup — FIXED (2026-07-15)
-**Status:** Complete. Deployed and committed (`5ca8f1a`).
-
-**Problem:** `cleanupOldSamples(retentionDays)` only accepted 1 parameter, silently ignoring `maxSizeMB`. DB grew to 608MB (108MB over 500MB limit). Cleanup only ran by age (30 days), never by size.
-
-**Fixes:**
-1. `cleanupOldSamples(retentionDays, maxSizeMB?)` — optional size parameter
-2. After time-based cleanup, if DB still > `maxSizeMB`, deletes oldest snapshots in 500-record batches until under limit
-3. Runs `VACUUM` to reclaim disk space
-4. Added missing `process_spikes` foreign key cleanup (was causing `SQLITE_CONSTRAINT_FOREIGNKEY` errors)
-5. `Monitor.ts` passes `retentionSizeMB` (default 400MB) to cleanup
-6. Dashboard `/api/cleanup` accepts `maxSizeMB` parameter
-7. Bonus: fixed `check-anomalies.ts` — `better-sqlite3` v12 removed `.pluck()`, replaced with `.get()` + column alias
-
-**Files changed:**
-- `src/storage/TimeSeriesDB.ts` — cleanup method + size-based batch deletion
-- `src/core/Monitor.ts` — pass `retentionSizeMB` to cleanup
-- `src/web/server.ts` — `/api/cleanup` accepts `maxSizeMB`
-- `src/scripts/check-anomalies.ts` — replace `.pluck()` with `.get()`
-- `package.json` — bump `better-sqlite3` to `^12.0.0`
-
----
-
-### 🔄 T20: Dashboard Detail Views — Clickable KPI Cards
-**Status:** Phase 2 complete (all views functional with existing data). Phases 3-4 pending backend APIs.
-**Started:** 2026-06-26.
+### ✅ T20: Dashboard Detail Views — Complete
+**Status:** Phase 3 complete (all views have real data via backend APIs). Phase 4 (charts) deferred.
+**Started:** 2026-06-26. Completed: 2026-06-26.
 
 **Implemented:**
 - **CPU** → Process list sorted by CPU ✅ (Phase 1)
 - **Memory** → Memory pressure gauge + process list sorted by memory ✅ (Phase 2)
-- **Disk** → Disk usage gauge + I/O counters ✅ (Phase 2)
-- **Network** → RX/TX/Total rate cards ✅ (Phase 2)
-- **Battery** → Battery status + per-process energy table ✅ (Phase 2)
-- **Status** → Load avg, CPU temp, process count, last update ✅ (Phase 2)
+- **Disk** → Disk usage gauge + I/O rates (MB/s) + per-volume table ✅ (Phase 3)
+- **Network** → RX/TX/Total rate cards + interface list + active connections ✅ (Phase 3)
+- **Battery** → Battery status + time remaining + health % ✅ (Phase 3)
+- **Status** → Load avg, CPU temp, process count, uptime, OS, CPU model, hostname ✅ (Phase 3)
 
-**Pending backend APIs:**
-- `/api/disk-volumes` — per-mount stats, I/O throughput, queue depth, SMART
-- `/api/network-interfaces` — per-interface RX/TX/errors/drops
-- `/api/network-connections` — active TCP/UDP connections
-- `/api/battery-history` — battery % over time range
-- `/api/process-energy` — per-process energy scores over time
+**Backend APIs added (Phase 3):**
+- `/api/network-interfaces` — per-interface RX/TX/speed/state/errors
+- `/api/network-connections` — active TCP/UDP connections with process names
+- `/api/disk-volumes` — per-mount stats, size, used, available, filesystem type
+
+**Cross-platform improvements:**
+- Apple Silicon battery temperature via `ioreg -r -c AppleSmartBattery`
+- Disk I/O rates computed from delta (like network rates)
+- System info collected: platform, distro, release, arch, hostname, CPU model, cores, threads
+- Battery health % from maxCapacity/designedCapacity ratio
 
 ---
 
@@ -211,7 +152,6 @@ See workspace beads queue for full details.
 - **T3: Query Interface** (2026-06-10)
 
 ## Next Steps
-- **T22:** Persist process identity/provenance into SQLite and implement full macOS launchd/plist validation with `launchctl`, plist scans, `sample`, and `fs_usage`.
 - **T20:** Dashboard Detail Views — clickable KPI cards (design complete, implement Phase 1)
 - **T11a-d:** Natural Language Search subtasks (in beads queue)
 - **T5:** Swift Menubar App — Native macOS experience
@@ -233,8 +173,8 @@ Detailed implementation documentation for individual features:
 ## System Status
 - **Battery**: N/A (Linux VPS — no battery)
 - **Memory**: ~17% used (Linux VPS, 2GB RAM)
-- **DB**: `~/.procmon/monitor.db` — ~600MB (will cleanup to ~400MB on next monitor cycle)
-- **Dashboard**: Running on http://localhost:3456
+- **DB**: `~/.procmon/monitor.db` — 83 snapshots, 532KB (fresh start on Linux VPS)
+- **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
 - **Monitor**: Running via `npx tsx src/main.ts` on Linux VPS, collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
 - **Git Status**: All changes committed (commits `2127ae6`, `012d23b`, `db32fc0` pushed)
