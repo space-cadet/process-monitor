@@ -3,10 +3,11 @@
   "version": "2.0.0",
   "description": "System monitor - battery drain detection, CPU correlation, TypeScript",
   "main": "dist/main.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
-    "monitor": "tsx src/main.ts",
-    "dashboard": "tsx src/web/server.ts",
+    "monitor": "node dist/main.js",
+    "dashboard": "node dist/web/server.js",
     "show-data": "tsx src/show-data.ts",
     "check-gateway": "tsx src/scripts/check-gateway-health.ts",
     "check-anomalies": "tsx src/scripts/check-anomalies.ts",

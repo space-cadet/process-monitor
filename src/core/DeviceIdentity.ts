@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
+import { homedir, hostname } from 'os';
 
 const DEVICE_CONFIG_DIR = join(homedir(), '.procmon', 'config');
 const DEVICE_CONFIG_PATH = join(DEVICE_CONFIG_DIR, 'device.json');
@@ -37,8 +37,8 @@ function getPackageVersion(): string {
 }
 
 function getDefaultName(): string {
-  const hostname = require('os').hostname();
-  return hostname || 'procmon-device';
+  const deviceHostname = hostname();
+  return deviceHostname || 'procmon-device';
 }
 
 function loadOrCreateIdentity(): DeviceIdentity {

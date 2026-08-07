@@ -1,8 +1,27 @@
 # Active Context
 
-*Last Updated: 2026-06-26 11:40 IST*
+*Last Updated: 2026-08-08 05:10 IST*
 
 ## Current Tasks
+
+### ✅ T23: TypeScript Compilation — Complete
+**Status:** All source fixed, compiled to dist/, services running with plain node.
+**Started:** 2026-08-08. Completed: 2026-08-08.
+
+**What was done:**
+- Fixed `require()` → ESM imports in `TimeSeriesDB.ts`, `DeviceIdentity.ts`, `server.ts`
+- Compiled TypeScript to `dist/` with `pnpm exec tsc`
+- Added `"type": "module"` to `package.json`
+- Updated startup scripts: `run.sh`, `start-dashboard.sh`, `check-and-start.sh`
+- Both services now run with plain `node dist/...` — no tsx dependency
+- Tested `bun build --compile`: builds but fails at runtime (better-sqlite3 native bindings)
+
+**Current state:**
+- Monitor: `node dist/main.js` running
+- Dashboard: `node dist/web/server.js` on port 3456
+- Zero errors, no ESM warnings
+
+---
 
 ### ✅ T20: Dashboard Detail Views — Complete
 **Status:** Phase 3 complete (all views have real data via backend APIs). Phase 4 (charts) deferred.
@@ -137,6 +156,8 @@ See workspace beads queue for full details.
 ---
 
 ## Completed Tasks (Recent)
+- **T23: TypeScript Compilation** (2026-08-08) — Compiled src/ → dist/, eliminated tsx dependency, fixed ESM imports
+- **T21: DB Size-Based Cleanup Fix** (2026-07-15) — Fixed size-based cleanup algorithm and foreign key constraint errors
 - **T17: Multi-Device Dashboard V1** (2026-06-24) — Identity, QR pairing, peer polling, Tailscale/LAN/localhost
 - **T15: Energy API** (2026-06-24) — `powermetrics` integration, `energy_mj` field
 - **T13: Process Tree View** (2026-06-24) — `/api/process-tree`, tree/list toggle
@@ -151,8 +172,11 @@ See workspace beads queue for full details.
 - **T4: Web Dashboard v2** (2026-06-10)
 - **T3: Query Interface** (2026-06-10)
 
+## Active Tasks
+- **T22: Forensic Process Identification Layer** — Interval CPU profiler implemented, live process identity model added. Remaining: SQLite provenance storage, macOS forensic adapter (launchd/plist/sample/fs_usage), cross-platform adapters.
+
 ## Next Steps
-- **T20:** Dashboard Detail Views — clickable KPI cards (design complete, implement Phase 1)
+- **T22:** Forensic Process Identification Layer — Continue with SQLite provenance tables and macOS launchd/plist adapter
 - **T11a-d:** Natural Language Search subtasks (in beads queue)
 - **T5:** Swift Menubar App — Native macOS experience
 - **T14:** Anomaly Detection — Statistical outliers beyond thresholds
@@ -171,11 +195,11 @@ Detailed implementation documentation for individual features:
 - [Multi-Device Dashboard](memory-bank/implementation-details/multi-device-dashboard-implementation.md) (T17) — Device identity, QR pairing, peer polling, network discovery
 
 ## System Status
-- **Battery**: N/A (Linux VPS — no battery)
-- **Memory**: ~17% used (Linux VPS, 2GB RAM)
-- **DB**: `~/.procmon/monitor.db` — 83 snapshots, 532KB (fresh start on Linux VPS)
+- **Battery**: 53% (discharging, MacBook Air)
+- **Memory**: ~17% used
+- **DB**: `~/.procmon/monitor.db` — collecting every 30s
 - **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
-- **Monitor**: Running via `npx tsx src/main.ts` on Linux VPS, collecting every 30s
+- **Monitor**: Running via `node dist/main.js` (compiled), collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
-- **Git Status**: All changes committed (commits `2127ae6`, `012d23b`, `db32fc0` pushed)
-- **Network**: VPS public IP, no Tailscale on this node
+- **Git Status**: T23 changes staged (pending commit)
+- **Network**: MacBook Air, Tailscale active

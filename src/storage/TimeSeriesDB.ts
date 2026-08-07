@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
+import path from 'path';
 import {
   BatterySample,
   ProcessSnapshot,
@@ -19,8 +20,6 @@ export class TimeSeriesDB {
 
   constructor(dbPath: string = '~/.procmon/monitor.db') {
     this.dbPath = dbPath.replace(/^~/, process.env.HOME || '');
-    const fs = require('fs');
-    const path = require('path');
     const dir = path.dirname(this.dbPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });

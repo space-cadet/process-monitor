@@ -22,8 +22,8 @@
   <integer>63</integer>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/sage/.nvm/versions/node/v22.22.3/bin/tsx</string>
-    <string>src/web/server.ts</string>
+    <string>/bin/bash</string>
+    <string>/Users/sage/.openclaw/workspace/code/process-monitor/start-dashboard.sh</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/sage/.openclaw/workspace/code/process-monitor</string>

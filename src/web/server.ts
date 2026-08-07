@@ -7,7 +7,7 @@ import { createServer } from 'http';
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
 import QRCode from 'qrcode';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1154,7 +1154,6 @@ const server = createServer(async (req, res) => {
   if (pathname === '/api/restart' && req.method === 'POST') {
     try {
       // Spawn monitor restart in background
-      const { exec } = require('child_process');
       exec(`pkill -f "tsx.*src/main.ts" && sleep 2 && cd "${process.cwd()}" && nohup npx tsx src/main.ts > logs/monitor.log 2> logs/monitor-error.log &`, {
         env: { ...process.env, HOME: process.env.HOME || '/tmp' }
       });
@@ -1266,7 +1265,6 @@ const server = createServer(async (req, res) => {
   // ─── Process Tree Endpoint ───
   if (pathname === '/api/process-tree') {
     try {
-      const { execSync } = require('child_process');
       const output = execSync('ps -eo pid,ppid,comm,pcpu,pmem,rss', { encoding: 'utf8', timeout: 5000 });
       const lines = output.trim().split('\n');
       const headers = lines[0].trim().split(/\s+/);
