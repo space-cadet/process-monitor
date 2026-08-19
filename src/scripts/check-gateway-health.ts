@@ -11,6 +11,8 @@
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
+import { execSync } from 'child_process';
 
 interface GatewayHealthResult {
   windowHours: number;
@@ -75,7 +77,7 @@ Examples:
 
 function connectDB(dbPath: string): Database.Database {
   const resolvedPath = dbPath.replace(/^~/, os.homedir());
-  if (!require('fs').existsSync(resolvedPath)) {
+  if (!fs.existsSync(resolvedPath)) {
     throw new Error(`Database not found: ${resolvedPath}`);
   }
   const db = new Database(resolvedPath);
@@ -128,7 +130,6 @@ function analyzeGatewayHealth(
 
   // Also try to cross-reference with live system
   try {
-    const { execSync } = require('child_process');
     const livePid = execSync(
       "ps -eo pid,args | grep 'gateway --port 18789' | grep -v grep | awk '{print $1}'",
       { encoding: 'utf-8' }
@@ -264,7 +265,6 @@ function estimateSampleInterval(samples: any[]): number {
 function checkLogPatterns(): string[] {
   const findings: string[] = [];
   try {
-    const fs = require('fs');
     const logPath = path.join(os.homedir(), 'Library', 'Logs', 'openclaw', 'gateway.error.log');
     if (!fs.existsSync(logPath)) return findings;
 

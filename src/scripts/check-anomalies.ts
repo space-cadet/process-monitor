@@ -11,6 +11,7 @@
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 
 interface Anomaly {
   type: 'cpu_spike' | 'battery_drain' | 'memory_growth' | 'gateway_elevated';
@@ -104,7 +105,7 @@ Examples:
 
 function connectDB(dbPath: string): Database.Database {
   const resolvedPath = dbPath.replace(/^~/, os.homedir());
-  if (!require('fs').existsSync(resolvedPath)) {
+  if (!fs.existsSync(resolvedPath)) {
     throw new Error(`Database not found: ${resolvedPath}`);
   }
   const db = new Database(resolvedPath);
