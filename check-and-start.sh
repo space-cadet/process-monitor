@@ -14,8 +14,8 @@ RESTARTED=0
 
 cd /Users/sage/.openclaw/workspace/code/process-monitor
 
-# Check monitor (compiled: node dist/main.js)
-if ! pgrep -f "node dist/main.js" > /dev/null 2>&1; then
+# Check monitor (process-based: tsx running src/main.ts)
+if ! pgrep -f "tsx.*src/main.ts" > /dev/null 2>&1; then
     bash run.sh > /dev/null 2>&1 &
     echo "$(date '+%Y-%m-%d %H:%M:%S'): process-monitor started" >> "$MONITOR_LOG"
     RESTARTED=1
@@ -25,10 +25,15 @@ fi
 if ! lsof -ti:3456 > /dev/null 2>&1; then
     # Port is not bound — dashboard is down
     cd /Users/sage/.openclaw/workspace/code/process-monitor
-    bash start-dashboard.sh > /dev/null 2>&1 &
+    node_modules/.bin/tsx src/web/server.ts >> logs/dashboard.log 2>> logs/dashboard-error.log &
     echo "$(date '+%Y-%m-%d %H:%M:%S'): dashboard started (port 3456 was down)" >> "$MONITOR_LOG"
     RESTARTED=1
 fi
 
-# Exit non-zero if we had to restart anything, so cron can report it
-exit $RESTARTED
+# Check Ollama (port 11434) — managed by LaunchDaemon, but we monitor it
+if ! curl -s http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S'): OLLAMA DOWN (port 11434 not responding)" >> "$MONITOR_LOG"
+    # Kickstart the LaunchDaemon in case it's stuck
+    sudo launchctl kickstart -k system/ai.ollama.sage 2>/dev/null || true
+    RESTARTED=1
+fi
