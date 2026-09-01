@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Process Monitor</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <div class="container">
@@ -46,6 +46,9 @@
       </button>
       <button class="main-tab" data-tab="sleep" onclick="switchMainTab('sleep')">
         <span class="tab-icon">🌙</span> Sleep
+      </button>
+      <button class="main-tab" data-tab="watchdog" onclick="switchMainTab('watchdog')">
+        <span class="tab-icon">🚨</span> Watchdog <span class="tab-badge" id="watchdogBadge" style="display:none;">0</span>
       </button>
     </nav>
 
@@ -524,6 +527,56 @@
         </div>
         <div class="sleep-timeline" id="sleepTimeline">
           <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── WATCHDOG TAB ─── -->
+    <div class="tab-content" id="watchdogTab">
+      <div class="watchdog-layout">
+        <!-- Active Alerts Panel -->
+        <div class="panel" style="margin-bottom: 16px;">
+          <div class="panel-header">
+            <div class="panel-title" style="--panel-accent: var(--accent-drain);">🚨 Active Alerts</div>
+            <div class="panel-actions">
+              <button class="panel-btn" onclick="loadWatchdogAlerts()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div class="watchdog-alerts" id="watchdogAlerts">
+            <div style="padding: 20px; color: var(--text-dim); text-align: center;">Loading alerts...</div>
+          </div>
+        </div>
+
+        <!-- Actions Panel -->
+        <div class="panel" style="margin-bottom: 16px;">
+          <div class="panel-header">
+            <div class="panel-title" style="--panel-accent: var(--accent-cpu);">📦 Incident Actions</div>
+          </div>
+          <div class="watchdog-actions">
+            <div class="watchdog-action-card" onclick="createIncidentBundle()">
+              <div class="watchdog-action-icon">📦</div>
+              <div class="watchdog-action-title">Create Incident Bundle</div>
+              <div class="watchdog-action-desc">Capture current system state + 1h history</div>
+            </div>
+            <div class="watchdog-action-card" onclick="loadIncidentBundles()">
+              <div class="watchdog-action-icon">📂</div>
+              <div class="watchdog-action-title">View Bundles</div>
+              <div class="watchdog-action-desc">Browse saved incident bundles</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert History Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title" style="--panel-accent: var(--accent-warn);">📜 Alert History</div>
+            <div class="panel-actions">
+              <button class="panel-btn" onclick="loadWatchdogAlerts(true)">Load History</button>
+            </div>
+          </div>
+          <div class="watchdog-history" id="watchdogHistory">
+            <div style="padding: 20px; color: var(--text-dim); text-align: center;">Click "Load History" to view past alerts</div>
+          </div>
         </div>
       </div>
     </div>

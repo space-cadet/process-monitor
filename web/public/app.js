@@ -550,6 +550,8 @@ function switchMainTab(tab) {
     loadSleepWakeEvents(7);
   } else if (tab === 'devices') {
     loadDevices();
+  } else if (tab === 'watchdog') {
+    loadWatchdogAlerts();
   } else {
     // Clean up peer polling when leaving devices tab
     if (peerPollInterval) {
@@ -2576,6 +2578,172 @@ function init() {
   refreshInterval = setInterval(() => {
     fetchData(); loadDrainEvents(); loadDbSize(); loadServerInfo();
   }, 5000);
+}
+
+// ─── Watchdog Functions ───
+let watchdogAlertsData = [];
+let watchdogRefreshInterval = null;
+
+async function loadWatchdogAlerts(loadHistory = false) {
+  const container = document.getElementById('watchdogAlerts');
+  const historyContainer = document.getElementById('watchdogHistory');
+
+  if (container) {
+    container.innerHTML = '<div class="watchdog-empty"><div>⏳</div>Loading alerts...</div>';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/evidence-alerts`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    watchdogAlertsData = data.alerts || [];
+
+    // Render active alerts
+    if (container) {
+      const activeAlerts = watchdogAlertsData.filter(a => !a.resolvedAt);
+      if (activeAlerts.length === 0) {
+        container.innerHTML = `
+          <div class="watchdog-empty">
+            <div class="watchdog-empty-icon">✅</div>
+            <h4 style="color: var(--text-bright); margin-bottom: 4px;">No Active Alerts</h4>
+            <p>Watchdog is monitoring for panic signatures and anomalies.</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = activeAlerts.map(a => renderWatchdogAlert(a)).join('');
+      }
+    }
+
+    // Render history if requested
+    if (loadHistory && historyContainer) {
+      const historyAlerts = watchdogAlertsData.slice().reverse();
+      if (historyAlerts.length === 0) {
+        historyContainer.innerHTML = `
+          <div class="watchdog-empty">
+            <div class="watchdog-empty-icon">📭</div>
+            <p>No alert history yet.</p>
+          </div>
+        `;
+      } else {
+        historyContainer.innerHTML = `
+          <table class="watchdog-history-table">
+            <thead>
+              <tr><th>Time</th><th>Type</th><th>Severity</th><th>Observation</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${historyAlerts.map(a => `
+                <tr>
+                  <td>${new Date(a.timestamp).toLocaleTimeString()}</td>
+                  <td><span class="watchdog-alert-type ${a.severity}">${a.type}</span></td>
+                  <td>${a.severity}</td>
+                  <td>${escapeHtml(a.observation || '').substring(0, 60)}${(a.observation || '').length > 60 ? '...' : ''}</td>
+                  <td>${a.resolvedAt ? '✅ Resolved' : '🚨 Active'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    // Update tab badge
+    const badge = document.getElementById('watchdogBadge');
+    if (badge) {
+      const activeCount = watchdogAlertsData.filter(a => !a.resolvedAt).length;
+      badge.textContent = activeCount;
+      badge.style.display = activeCount > 0 ? 'inline-block' : 'none';
+    }
+  } catch (err) {
+    if (container) {
+      container.innerHTML = `
+        <div class="watchdog-empty">
+          <div class="watchdog-empty-icon">❌</div>
+          <h4 style="color: var(--accent-drain);">Failed to Load Alerts</h4>
+          <p>${escapeHtml(err.message)}</p>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderWatchdogAlert(alert) {
+  const severity = alert.severity || 'info';
+  const iconMap = { critical: '🔴', warning: '⚠️', info: 'ℹ️' };
+  const icon = iconMap[severity] || 'ℹ️';
+  const time = new Date(alert.timestamp).toLocaleTimeString();
+
+  return `
+    <div class="watchdog-alert-item ${severity}">
+      <div class="watchdog-alert-icon">${icon}</div>
+      <div class="watchdog-alert-content">
+        <div class="watchdog-alert-title">
+          ${escapeHtml(alert.type)}
+          <span class="watchdog-alert-type ${severity}">${severity}</span>
+        </div>
+        <div class="watchdog-alert-meta">${time} · ${alert.source || 'watchdog'}</div>
+        <div class="watchdog-alert-observation">${escapeHtml(alert.observation || '')}</div>
+      </div>
+      <div class="watchdog-alert-actions">
+        <button class="panel-btn" onclick="createIncidentBundle('${alert.id}')">📦 Bundle</button>
+      </div>
+    </div>
+  `;
+}
+
+async function createIncidentBundle(alertId = null) {
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Creating...';
+  }
+
+  try {
+    const body = alertId ? { alertId } : {};
+    const res = await fetch(`${API_BASE}/api/incident-bundle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    alert(`✅ Incident bundle created!\n\nPath: ${data.path}\nSize: ${data.sizeMB.toFixed(2)} MB`);
+  } catch (err) {
+    alert(`❌ Failed to create bundle: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📦 Bundle';
+    }
+  }
+}
+
+async function loadIncidentBundles() {
+  // This would list bundles from the incidents directory
+  // For now, show a placeholder
+  const container = document.getElementById('watchdogHistory');
+  if (container) {
+    container.innerHTML = `
+      <div class="watchdog-empty">
+        <div class="watchdog-empty-icon">📂</div>
+        <h4 style="color: var(--text-bright); margin-bottom: 4px;">Incident Bundles</h4>
+        <p>Bundles are stored in <code>~/.procmon/incidents/</code></p>
+        <p style="margin-top: 8px; font-size: 11px;">Use "Create Incident Bundle" to capture current system state.</p>
+      </div>
+    `;
+  }
+}
+
+// Auto-refresh watchdog alerts when tab is active
+function startWatchdogRefresh() {
+  if (watchdogRefreshInterval) return;
+  watchdogRefreshInterval = setInterval(() => {
+    const tab = document.querySelector('.main-tab[data-tab="watchdog"]');
+    if (tab && tab.classList.contains('active')) {
+      loadWatchdogAlerts();
+    }
+  }, 30000);
 }
 
 init();

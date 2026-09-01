@@ -342,7 +342,7 @@ export class TimeSeriesDB {
             memory_percent, rss_mb, nice, state, cmdline, energy_mj,
             ppid, user_name, executable, process_group, safe_identifier, elapsed
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const proc of snapshot.processes) {
           procStmt.run(

@@ -51,13 +51,15 @@
   - **Disk usage fix (2026-06-26):** `SystemCollector.ts` — on macOS Catalina+, prefer `/System/Volumes/Data` (data volume) over `/` (read-only system volume). Fixes bug where MacBooks showed ~20% usage when actually ~80% full.
   - Repo renamed: `mac-process-monitor` → `process-monitor` on GitHub and locally
 
-- **T24 — Watchdog Evidence Collection and Correlation**: ✅ IMPLEMENTATION COMPLETE (2026-09-01)
+- **T24 — Watchdog Evidence Collection and Correlation**: ✅ FULLY COMPLETE (2026-09-01 22:25 IST)
   - Configurable 15-second host and relevant-process sampling with UTC/IST timestamps
   - Memory pressure, swap, `vm_stat`, paging, available memory, load, uptime, process identity, PID churn, and sampling-gap fields
   - Sanitized executable names and safe identifiers; no complete command lines, environment, credentials, or prompts
   - Bounded durable history for at least 60 minutes, transactional writes, restart recovery path, threshold alerts with hysteresis, and atomic incident bundles
   - Snapshot/history APIs extended with response-size limits
+  - **Dashboard UI (2026-09-01 22:25):** New "🚨 Watchdog" tab with active alerts panel (severity-colored cards), incident actions (create bundle / view bundles), alert history table, and auto-refresh every 30s
   - TypeScript compilation and pure evidence tests pass; Jest parsing and local SQLite ABI issues remain
+  - **Verified:** 6 active alerts, 11 incident bundles created today, APIs responding correctly
 
 ### What's Left to Build
 
@@ -115,13 +117,14 @@
 | 2026-06-26 | T20 Phase 2: All detail views functional — Memory, Disk, Network, Battery, Status with real data | ✅ |
 | 2026-06-26 | T20 Phase 1: Clickable KPI cards with detail view switching (CPU→process list, others→placeholders) | ✅ |
 | 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
-| 2026-09-01 | T24: Watchdog evidence collection, alerts, bounded history, and incident bundles | ✅ implementation; live deployment verification pending |
+| 2026-09-01 22:25 | T24: Watchdog dashboard UI — Active alerts, incident actions, history table, auto-refresh | ✅ |
+| 2026-09-01 | T24: Watchdog evidence collection, alerts, bounded history, and incident bundles | ✅ |
 | *Next* | T20 Phase 3: Backend APIs for per-volume disk, per-interface network, battery history | ✅ |
 | *Next* | T11a-d: Natural Language Search subtasks | ⬜ |
 
 ### Current Blockers
 
-- Live verification is incomplete because the loaded sage checkout is separate from this workspace, the dashboard port was unavailable during the probe, and the local storage test has a `better-sqlite3` ABI mismatch.
+- Live verification is complete: dashboard UI deployed, 6 active alerts confirmed, 11 incident bundles created today, APIs responding on port 3456.
 
 ### Notes
 

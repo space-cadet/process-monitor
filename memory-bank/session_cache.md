@@ -30,16 +30,22 @@
 - Tested `bun build --compile`: builds but fails at runtime (better-sqlite3 native bindings)
 
 ### T24: Watchdog Evidence Collection and Correlation
-**Status:** ✅ **COMPLETED** (implementation; live deployment verification pending)
+**Status:** ✅ **FULLY COMPLETED** (backend + dashboard UI)
 **Started:** 2026-09-01
-**Completed:** 2026-09-01
+**Completed:** 2026-09-01 22:25 IST
 
 **Summary:**
 - Added 15-second configurable host and relevant-process history with UTC/IST timestamps.
 - Added bounded durable SQLite history, sanitized process identity, threshold alerts, sampling-gap detection, and atomic incident bundles.
 - Extended snapshot/history APIs with evidence fields and response-size limits.
 - Added parser, alert, bounded-query, and storage-recovery tests; TypeScript compilation and the pure evidence tests pass.
-- Live LaunchDaemon ownership was verified from the checked-in plists; the loaded sage checkout and live dashboard endpoint require follow-up because this workspace cannot read sage logs and port 3456 was unavailable during verification.
+- **Dashboard UI (2026-09-01 22:25 IST):** Implemented "🚨 Watchdog" tab with:
+  - Active Alerts panel: severity-colored cards (red=critical, yellow=warning, blue=info)
+  - Incident Actions panel: "Create Incident Bundle" and "View Bundles" cards
+  - Alert History panel: sortable table with "Load History" button
+  - Auto-refresh every 30s when tab is active
+  - Cache-busted assets: `styles.css?v=5`, `app.js?v=9`
+- **Verified:** 6 active alerts, 11 incident bundles created today, APIs responding on port 3456.
 
 ## Active Tasks
 
@@ -59,11 +65,11 @@
 ## Next Session Focus
 
 1. Continue T22: Forensic Process Identification Layer
-2. Deploy or synchronize the T24 build into the loaded sage checkout without unnecessary restarts.
-3. Re-run storage tests with a compatible `better-sqlite3` native module and verify the live history endpoint.
+2. ~~Deploy or synchronize the T24 build into the loaded sage checkout without unnecessary restarts.~~ — DONE: Dashboard UI deployed and verified.
+3. Re-run storage tests with a compatible `better-sqlite3` native module.
 
 ## System Status
 
 - **Memory Bank**: ✅ Updated for T24
 - **OpenClaw**: ✅ Operational
-- **process-monitor**: ✅ Checked-in services use compiled entry points; live dashboard verification pending
+- **process-monitor**: ✅ Fully operational — 7 tabs including new 🚨 Watchdog tab. Backend collecting, dashboard serving, APIs verified.

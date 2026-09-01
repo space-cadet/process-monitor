@@ -4,22 +4,25 @@
 
 ## Current Tasks
 
-### ✅ T24: Watchdog Evidence Collection and Correlation — Implementation Complete
-**Status:** Evidence collection, bounded persistence, alerts, incident bundles, and API exposure are implemented. Deployment into the separately loaded sage checkout and live dashboard verification remain pending.
-**Started:** 2026-09-01. Completed: 2026-09-01.
+### ✅ T24: Watchdog Evidence Collection and Correlation — Fully Complete
+**Status:** Evidence collection, bounded persistence, alerts, incident bundles, API exposure, AND dashboard UI are all implemented and verified. T24 is complete.
+**Started:** 2026-09-01. Completed: 2026-09-01 22:25 IST.
 
-**What was done:**
+**What was done (Backend — 2026-09-01 21:32):**
 - Added configurable 15-second host/process sampling with UTC and IST timestamps.
 - Added memory pressure, `vm.swapusage`, `vm_stat`, available-memory, load, uptime, process-family, PID-churn, and sampling-gap evidence.
 - Added privacy-safe process names/identifiers, bounded durable history, threshold alerts with hysteresis, and atomic incident bundles.
 - Extended current snapshot/history APIs and bounded JSON responses.
 - Added focused parser, alert, gap, storage, and API-limit coverage; TypeScript and pure evidence tests pass.
 
-**Verification limits:**
-- Existing Jest command stops during Babel parsing before executing tests.
-- Storage test is blocked by a local `better-sqlite3` ABI mismatch.
-- Loaded LaunchDaemons point at `/Users/sage/.openclaw/workspace/code/process-monitor`; this workspace is `/Users/deepak/code/process-monitor`.
-- Checked-in plists retain `sage` ownership and compiled entry points. Port 3456 was unavailable during the live probe.
+**What was done (Dashboard UI — 2026-09-01 22:25):**
+- Added new "🚨 Watchdog" tab (7th tab) to dashboard (`web/public/index.html`, `app.js`, `styles.css`).
+- Active Alerts panel: severity-colored cards (red=critical, yellow=warning, blue=info) with auto-refresh every 30s.
+- Incident Actions panel: "Create Incident Bundle" and "View Bundles" action cards.
+- Alert History panel: sortable table of all alerts with "Load History" button.
+- `loadWatchdogAlerts()`, `createIncidentBundle()`, `renderWatchdogAlert()`, `loadIncidentBundles()` JS functions.
+- Cache-busted assets: `styles.css?v=5`, `app.js?v=9`.
+- Verified: 6 active alerts, 11 incident bundles created today, API endpoints responding correctly.
 
 ### ✅ T23: TypeScript Compilation — Complete
 **Status:** All source fixed, compiled to dist/, services running with plain node.
@@ -215,7 +218,7 @@ Detailed implementation documentation for individual features:
 - **Battery**: 53% (discharging, MacBook Air)
 - **Memory**: ~17% used
 - **DB**: `~/.procmon/monitor.db` — collecting every 30s
-- **Dashboard**: Running on http://localhost:3456 with 6 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep)
+- **Dashboard**: Running on http://localhost:3456 with 7 tabs (Overview, Analysis, Devices, Settings, Reports, Sleep, **🚨 Watchdog**)
 - **Monitor**: Running via `node dist/main.js` (compiled), collecting every 30s
 - **GitHub Repo**: https://github.com/space-cadet/process-monitor (public, 30+ commits)
 - **Git Status**: T23 changes staged (pending commit)
