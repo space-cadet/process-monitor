@@ -1,8 +1,8 @@
 # Progress Report: process-monitor
 
-*Last Updated: 2026-06-26 11:40 IST*
+*Last Updated: 2026-09-01 21:32 IST*
 
-## Project Status: T1-T17 Complete + Cross-Platform Fixes; T5 (Swift), T11 (NL Search), T14 (ML) Remaining
+## Project Status: T1-T24 implementation complete except live T24 deployment verification; T5 (Swift), T11 (NL Search), T14 (ML) remain
 
 ### What Works
 
@@ -50,6 +50,14 @@
   - `web/public/app.js` — battery UI shows "No battery" / "Desktop / Server" on battery-less machines instead of `0%`
   - **Disk usage fix (2026-06-26):** `SystemCollector.ts` — on macOS Catalina+, prefer `/System/Volumes/Data` (data volume) over `/` (read-only system volume). Fixes bug where MacBooks showed ~20% usage when actually ~80% full.
   - Repo renamed: `mac-process-monitor` → `process-monitor` on GitHub and locally
+
+- **T24 — Watchdog Evidence Collection and Correlation**: ✅ IMPLEMENTATION COMPLETE (2026-09-01)
+  - Configurable 15-second host and relevant-process sampling with UTC/IST timestamps
+  - Memory pressure, swap, `vm_stat`, paging, available memory, load, uptime, process identity, PID churn, and sampling-gap fields
+  - Sanitized executable names and safe identifiers; no complete command lines, environment, credentials, or prompts
+  - Bounded durable history for at least 60 minutes, transactional writes, restart recovery path, threshold alerts with hysteresis, and atomic incident bundles
+  - Snapshot/history APIs extended with response-size limits
+  - TypeScript compilation and pure evidence tests pass; Jest parsing and local SQLite ABI issues remain
 
 ### What's Left to Build
 
@@ -107,12 +115,13 @@
 | 2026-06-26 | T20 Phase 2: All detail views functional — Memory, Disk, Network, Battery, Status with real data | ✅ |
 | 2026-06-26 | T20 Phase 1: Clickable KPI cards with detail view switching (CPU→process list, others→placeholders) | ✅ |
 | 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
+| 2026-09-01 | T24: Watchdog evidence collection, alerts, bounded history, and incident bundles | ✅ implementation; live deployment verification pending |
 | *Next* | T20 Phase 3: Backend APIs for per-volume disk, per-interface network, battery history | ✅ |
 | *Next* | T11a-d: Natural Language Search subtasks | ⬜ |
 
 ### Current Blockers
 
-- None
+- Live verification is incomplete because the loaded sage checkout is separate from this workspace, the dashboard port was unavailable during the probe, and the local storage test has a `better-sqlite3` ABI mismatch.
 
 ### Notes
 

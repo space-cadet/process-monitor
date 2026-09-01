@@ -8,7 +8,9 @@ import {
   ProcessSpike,
   BatteryImpactEvent,
   DrainEvent,
+  WatchdogAlert,
 } from '../types/index.js';
+import { safeExecutableName } from '../core/WatchdogEvidence.js';
 
 /**
  * SQLite storage for time-series system snapshots and drain events.
@@ -53,6 +55,32 @@ export class TimeSeriesDB {
       { name: 'net_tx_bytes', type: 'REAL' },
       { name: 'fs_used_percent', type: 'REAL' },
       { name: 'cpu_temp', type: 'REAL' },
+      { name: 'timestamp_utc', type: 'TEXT' },
+      { name: 'timestamp_ist', type: 'TEXT' },
+      { name: 'memory_pressure', type: 'TEXT' },
+      { name: 'memory_pressure_percent', type: 'REAL' },
+      { name: 'swap_usage_total_mb', type: 'REAL' },
+      { name: 'swap_usage_used_mb', type: 'REAL' },
+      { name: 'swap_usage_free_mb', type: 'REAL' },
+      { name: 'swap_usage_percent', type: 'REAL' },
+      { name: 'vm_page_size_bytes', type: 'INTEGER' },
+      { name: 'vm_pages_free', type: 'INTEGER' },
+      { name: 'vm_pages_active', type: 'INTEGER' },
+      { name: 'vm_pages_inactive', type: 'INTEGER' },
+      { name: 'vm_pages_wired', type: 'INTEGER' },
+      { name: 'vm_pages_compressed', type: 'INTEGER' },
+      { name: 'vm_pages_purged', type: 'INTEGER' },
+      { name: 'vm_pageins', type: 'INTEGER' },
+      { name: 'vm_pageouts', type: 'INTEGER' },
+      { name: 'vm_swapins', type: 'INTEGER' },
+      { name: 'vm_swapouts', type: 'INTEGER' },
+      { name: 'vm_compressor_bytes', type: 'INTEGER' },
+      { name: 'available_memory_mb', type: 'REAL' },
+      { name: 'process_count', type: 'INTEGER' },
+      { name: 'relevant_process_count', type: 'INTEGER' },
+      { name: 'unique_pid_count', type: 'INTEGER' },
+      { name: 'pid_churn_percent', type: 'REAL' },
+      { name: 'sample_gap_seconds', type: 'REAL' },
     ];
     for (const col of snapshotCols) {
       if (!this.tableHasColumn('snapshots', col.name)) {
@@ -67,6 +95,12 @@ export class TimeSeriesDB {
       { name: 'nice', type: 'INTEGER' },
       { name: 'state', type: 'TEXT' },
       { name: 'energy_mj', type: 'REAL' },
+      { name: 'ppid', type: 'INTEGER' },
+      { name: 'user_name', type: 'TEXT' },
+      { name: 'executable', type: 'TEXT' },
+      { name: 'process_group', type: 'TEXT' },
+      { name: 'safe_identifier', type: 'TEXT' },
+      { name: 'elapsed', type: 'TEXT' },
     ];
     for (const col of processCols) {
       if (!this.tableHasColumn('process_samples', col.name)) {
@@ -100,6 +134,32 @@ export class TimeSeriesDB {
         net_tx_bytes REAL,
         fs_used_percent REAL,
         cpu_temp REAL
+        ,timestamp_utc TEXT
+        ,timestamp_ist TEXT
+        ,memory_pressure TEXT
+        ,memory_pressure_percent REAL
+        ,swap_usage_total_mb REAL
+        ,swap_usage_used_mb REAL
+        ,swap_usage_free_mb REAL
+        ,swap_usage_percent REAL
+        ,vm_page_size_bytes INTEGER
+        ,vm_pages_free INTEGER
+        ,vm_pages_active INTEGER
+        ,vm_pages_inactive INTEGER
+        ,vm_pages_wired INTEGER
+        ,vm_pages_compressed INTEGER
+        ,vm_pages_purged INTEGER
+        ,vm_pageins INTEGER
+        ,vm_pageouts INTEGER
+        ,vm_swapins INTEGER
+        ,vm_swapouts INTEGER
+        ,vm_compressor_bytes INTEGER
+        ,available_memory_mb REAL
+        ,process_count INTEGER
+        ,relevant_process_count INTEGER
+        ,unique_pid_count INTEGER
+        ,pid_churn_percent REAL
+        ,sample_gap_seconds REAL
       );
       CREATE INDEX IF NOT EXISTS idx_snapshots_time ON snapshots(timestamp);
     `);
@@ -120,6 +180,12 @@ export class TimeSeriesDB {
         state TEXT,
         cmdline TEXT,
         energy_mj REAL,
+        ppid INTEGER,
+        user_name TEXT,
+        executable TEXT,
+        process_group TEXT,
+        safe_identifier TEXT,
+        elapsed TEXT,
         FOREIGN KEY (snapshot_id) REFERENCES snapshots(id)
       );
       CREATE INDEX IF NOT EXISTS idx_processes_snapshot ON process_samples(snapshot_id);
@@ -207,6 +273,18 @@ export class TimeSeriesDB {
       );
       CREATE INDEX IF NOT EXISTS idx_impact_events_time ON battery_impact_events(start_time);
     `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS watchdog_alerts (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        observed_at INTEGER NOT NULL,
+        timestamp_utc TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        observation TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1
+      );
+      CREATE INDEX IF NOT EXISTS idx_watchdog_alerts_time ON watchdog_alerts(observed_at);
+    `);
   }
 
   insertSnapshot(snapshot: SystemSnapshot, includeProcesses: boolean = true): number {
@@ -218,58 +296,66 @@ export class TimeSeriesDB {
         swap_used_mb, swap_total_mb, load_avg,
         disk_read_io, disk_write_io, disk_total_io,
         net_rx_bytes, net_tx_bytes,
-        fs_used_percent, cpu_temp
+        fs_used_percent, cpu_temp,
+        timestamp_utc, timestamp_ist, memory_pressure, memory_pressure_percent,
+        swap_usage_total_mb, swap_usage_used_mb, swap_usage_free_mb, swap_usage_percent,
+        vm_page_size_bytes, vm_pages_free, vm_pages_active, vm_pages_inactive,
+        vm_pages_wired, vm_pages_compressed, vm_pages_purged, vm_pageins, vm_pageouts,
+        vm_swapins, vm_swapouts, vm_compressor_bytes, available_memory_mb,
+        process_count, relevant_process_count, unique_pid_count, sample_gap_seconds
+        ,pid_churn_percent
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (${Array.from({ length: 46 }, () => '?').join(', ')})
     `);
-    const result = snapStmt.run(
-      snapshot.timestamp,
-      snapshot.battery.percent,
-      snapshot.battery.isCharging ? 1 : 0,
-      snapshot.cpuTotal,
-      snapshot.cpuUser,
-      snapshot.cpuSystem,
-      snapshot.cpuIdle,
-      snapshot.memoryTotal,
-      snapshot.memoryUsedMB,
-      snapshot.memoryFreeMB,
-      snapshot.swapUsedMB,
-      snapshot.swapTotalMB,
-      snapshot.loadAvg,
-      snapshot.diskReadIO,
-      snapshot.diskWriteIO,
-      snapshot.diskTotalIO,
-      snapshot.netRxBytes,
-      snapshot.netTxBytes,
-      snapshot.fsUsedPercent,
-      snapshot.cpuTemp
-    );
-    const snapshotId = result.lastInsertRowid as number;
+    const host = snapshot.hostEvidence;
+    const vm = host?.vmStat;
+    const swap = host?.swapUsage;
+    const insert = this.db.transaction(() => {
+      const result = snapStmt.run(
+        snapshot.timestamp, snapshot.battery.percent, snapshot.battery.isCharging ? 1 : 0,
+        snapshot.cpuTotal, snapshot.cpuUser, snapshot.cpuSystem, snapshot.cpuIdle,
+        snapshot.memoryTotal, snapshot.memoryUsedMB, snapshot.memoryFreeMB,
+        snapshot.swapUsedMB, snapshot.swapTotalMB, snapshot.loadAvg,
+        snapshot.diskReadIO, snapshot.diskWriteIO, snapshot.diskTotalIO,
+        snapshot.netRxBytes, snapshot.netTxBytes, snapshot.fsUsedPercent, snapshot.cpuTemp,
+        host?.timestampUtc ?? new Date(snapshot.timestamp).toISOString(), host?.timestampIst ?? null,
+        host?.memoryPressure ?? null, host?.memoryPressurePercent ?? null,
+        swap?.totalBytes != null ? swap.totalBytes / 1024 / 1024 : null,
+        swap?.usedBytes != null ? swap.usedBytes / 1024 / 1024 : null,
+        swap?.freeBytes != null ? swap.freeBytes / 1024 / 1024 : null,
+        swap?.usedPercent ?? null,
+        vm?.pageSizeBytes ?? null, vm?.pagesFree ?? null, vm?.pagesActive ?? null,
+        vm?.pagesInactive ?? null, vm?.pagesWired ?? null, vm?.pagesCompressed ?? null,
+        vm?.pagesPurged ?? null, vm?.pageins ?? null, vm?.pageouts ?? null,
+        vm?.swapins ?? null, vm?.swapouts ?? null, vm?.compressorBytes ?? null,
+        host?.availableMemoryMB ?? null, host?.processCount ?? snapshot.processes.length,
+        host?.relevantProcessCount ?? 0, host?.uniquePidCount ?? snapshot.processes.length,
+        host?.sampleGapSeconds ?? null,
+        host?.pidChurnPercent ?? null,
+      );
+      const snapshotId = result.lastInsertRowid as number;
 
-    if (includeProcesses) {
-      // Insert processes
-      const procStmt = this.db.prepare(`
-        INSERT INTO process_samples (
-          snapshot_id, pid, name, cpu_percent, cpu_user_percent, cpu_system_percent,
-          memory_percent, rss_mb, nice, state, cmdline, energy_mj
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      const insertProc = this.db.transaction((processes: ProcessSnapshot[]) => {
-        for (const proc of processes) {
+      if (includeProcesses) {
+        const procStmt = this.db.prepare(`
+          INSERT INTO process_samples (
+            snapshot_id, pid, name, cpu_percent, cpu_user_percent, cpu_system_percent,
+            memory_percent, rss_mb, nice, state, cmdline, energy_mj,
+            ppid, user_name, executable, process_group, safe_identifier, elapsed
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const proc of snapshot.processes) {
           procStmt.run(
-            snapshotId, proc.pid, proc.name,
-            proc.cpuPercent, proc.cpuUserPercent, proc.cpuSystemPercent,
-            proc.memoryPercent, proc.rssMB, proc.nice, proc.state, proc.cmdline,
-            proc.energyMJ ?? null
+            snapshotId, proc.pid, proc.name, proc.cpuPercent, proc.cpuUserPercent, proc.cpuSystemPercent,
+            proc.memoryPercent, proc.rssMB, proc.nice, proc.state, proc.executable || proc.name,
+            proc.energyMJ ?? null, proc.ppid ?? null, proc.user || 'unknown', proc.executable || proc.name,
+            proc.processGroup || 'other', proc.safeIdentifier ?? null, proc.elapsed ?? null,
           );
         }
-      });
-      insertProc(snapshot.processes);
-    }
-
-    return snapshotId;
+      }
+      return snapshotId;
+    });
+    return insert();
   }
 
   insertDrainEvent(event: DrainEvent): void {
@@ -291,11 +377,12 @@ export class TimeSeriesDB {
   }
 
   getRecentSnapshots(minutes: number = 60): any[] {
-    const cutoff = Date.now() - minutes * 60000;
+    const safeMinutes = Math.min(Math.max(Number.isFinite(minutes) ? minutes : 60, 1), 60);
+    const cutoff = Date.now() - safeMinutes * 60000;
     const stmt = this.db.prepare(`
       SELECT * FROM snapshots WHERE timestamp > ? ORDER BY timestamp DESC
     `);
-    return stmt.all(cutoff);
+    return stmt.all(cutoff).slice(0, 240);
   }
 
   /**
@@ -303,17 +390,66 @@ export class TimeSeriesDB {
    * Includes all columns directly from the DB - no type reconstruction.
    */
   getRecentSnapshotsRaw(minutes: number = 60): any[] {
-    const cutoff = Date.now() - minutes * 60000;
+    const safeMinutes = Math.min(Math.max(Number.isFinite(minutes) ? minutes : 60, 1), 60);
+    const cutoff = Date.now() - safeMinutes * 60000;
     const stmt = this.db.prepare(`
       SELECT * FROM snapshots WHERE timestamp > ? ORDER BY timestamp DESC
     `);
-    return stmt.all(cutoff);
+    return stmt.all(cutoff).slice(0, 240);
+  }
+
+  insertWatchdogAlert(alert: WatchdogAlert): void {
+    this.db.prepare(`
+      INSERT OR IGNORE INTO watchdog_alerts
+        (id, type, observed_at, timestamp_utc, severity, observation, active)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(alert.id, alert.type, alert.observedAt, alert.timestampUtc, alert.severity, alert.observation, alert.active ? 1 : 0);
+  }
+
+  getWatchdogAlerts(minutes: number = 60, limit: number = 100): any[] {
+    const safeMinutes = Math.min(Math.max(Number.isFinite(minutes) ? minutes : 60, 1), 60);
+    const safeLimit = Math.min(Math.max(Number.isFinite(limit) ? limit : 100, 1), 100);
+    return this.db.prepare(`
+      SELECT id, type, observed_at AS observedAt, timestamp_utc AS timestampUtc,
+             severity, observation, active
+      FROM watchdog_alerts WHERE observed_at > ?
+      ORDER BY observed_at DESC LIMIT ?
+    `).all(Date.now() - safeMinutes * 60000, safeLimit);
+  }
+
+  /** Write a bounded, sanitized incident bundle atomically for later review. */
+  createIncidentBundle(reason: string, observedAt: number = Date.now()): string | null {
+    try {
+      const incidentDir = path.join(path.dirname(this.dbPath), 'incidents');
+      fs.mkdirSync(incidentDir, { recursive: true, mode: 0o700 });
+      const stamp = new Date(observedAt).toISOString().replace(/[:.]/g, '-');
+      const target = path.join(incidentDir, `incident-${stamp}.json`);
+      const temp = `${target}.${process.pid}.tmp`;
+      const payload = {
+        schemaVersion: 1,
+        kind: 'process-monitor-watchdog-evidence',
+        observedAt,
+        timestampUtc: new Date(observedAt).toISOString(),
+        reason: reason.slice(0, 500),
+        history: this.getRecentSnapshotsRaw(60),
+        latestProcesses: this.getLatestProcesses(100),
+        alerts: this.getWatchdogAlerts(60, 100),
+        privacy: 'No credentials, environment variables, prompt contents, or unrestricted command lines are collected.',
+      };
+      fs.writeFileSync(temp, JSON.stringify(payload), { encoding: 'utf8', mode: 0o600 });
+      fs.renameSync(temp, target);
+      return target;
+    } catch (err) {
+      console.error('[TimeSeriesDB] Incident bundle failed:', (err as Error).message);
+      return null;
+    }
   }
 
   /**
    * Returns the most recent process samples from the latest snapshot.
    */
   getLatestProcesses(limit: number = 20): any[] {
+    const safeLimit = Math.min(Math.max(Number.isFinite(limit) ? limit : 20, 1), 100);
     const latest = this.db.prepare(`
       SELECT id FROM snapshots ORDER BY timestamp DESC LIMIT 1
     `).get() as { id: number } | undefined;
@@ -325,7 +461,10 @@ export class TimeSeriesDB {
       ORDER BY cpu_percent DESC
       LIMIT ?
     `);
-    return stmt.all(latest.id, limit);
+    return (stmt.all(latest.id, safeLimit) as any[]).map(row => ({
+      ...row,
+      cmdline: safeExecutableName(String(row.executable || row.name || row.cmdline || 'unknown')),
+    }));
   }
 
   getDrainEvents(since?: number): DrainEvent[] {
@@ -335,7 +474,7 @@ export class TimeSeriesDB {
       sql += ' WHERE start_time > ?';
       params.push(since);
     }
-    sql += ' ORDER BY start_time DESC';
+    sql += ' ORDER BY start_time DESC LIMIT 100';
 
     const stmt = this.db.prepare(sql);
     const rows = stmt.all(...params) as any[];
@@ -365,6 +504,7 @@ export class TimeSeriesDB {
 
     // Delete old snapshots
     this.db.prepare('DELETE FROM snapshots WHERE timestamp < ?').run(cutoff);
+    this.db.prepare('DELETE FROM watchdog_alerts WHERE observed_at < ?').run(cutoff);
 
     // ─── Size-based cleanup (if maxSizeMB provided) ───
     if (maxSizeMB && maxSizeMB > 0) {
@@ -463,7 +603,7 @@ export class TimeSeriesDB {
         vmsMB: 0,
         nice: p.nice ?? 0,
         state: p.state ?? 'unknown',
-        cmdline: p.cmdline,
+        cmdline: safeExecutableName(String(p.executable || p.name || p.cmdline || 'unknown')),
         energyMJ: p.energy_mj ?? null,
       })),
       cpuTotal: row.cpu_total,
@@ -502,14 +642,33 @@ export class TimeSeriesDB {
     };
   }
 
-  getSnapshotHistory(minutes: number = 60): { timestamp: number; batteryPercent: number; cpuTotal: number; memoryTotal: number; diskTotalIO: number; netRxBytes: number; netTxBytes: number; fsUsedPercent: number }[] {
-    const cutoff = Date.now() - minutes * 60000;
+  getSnapshotHistory(minutes: number = 60): any[] {
+    const safeMinutes = Math.min(Math.max(Number.isFinite(minutes) ? minutes : 60, 1), 60);
+    const cutoff = Date.now() - safeMinutes * 60000;
     const stmt = this.db.prepare(`
-      SELECT timestamp, battery_percent, cpu_total, memory_total,
-             disk_total_io, net_rx_bytes, net_tx_bytes, fs_used_percent
+      SELECT timestamp, timestamp_utc AS timestampUtc, timestamp_ist AS timestampIst,
+             battery_percent AS batteryPercent, cpu_total AS cpuTotal, memory_total AS memoryTotal,
+             memory_used_mb AS memoryUsedMB, memory_free_mb AS memoryFreeMB,
+             available_memory_mb AS availableMemoryMB, memory_pressure AS memoryPressure,
+             memory_pressure_percent AS memoryPressurePercent,
+             swap_used_mb AS swapUsedMB, swap_total_mb AS swapTotalMB,
+             swap_usage_total_mb AS swapUsageTotalMB, swap_usage_used_mb AS swapUsageUsedMB,
+             swap_usage_free_mb AS swapUsageFreeMB, swap_usage_percent AS swapUsagePercent,
+             vm_page_size_bytes AS vmPageSizeBytes, vm_pages_free AS vmPagesFree,
+             vm_pages_active AS vmPagesActive, vm_pages_inactive AS vmPagesInactive,
+             vm_pages_wired AS vmPagesWired, vm_pages_compressed AS vmPagesCompressed,
+             vm_pages_purged AS vmPagesPurged, vm_compressor_bytes AS vmCompressorBytes,
+             vm_pageins AS vmPageins, vm_pageouts AS vmPageouts,
+             vm_swapins AS vmSwapins, vm_swapouts AS vmSwapouts,
+             process_count AS processCount, relevant_process_count AS relevantProcessCount,
+             unique_pid_count AS uniquePidCount, pid_churn_percent AS pidChurnPercent,
+             sample_gap_seconds AS sampleGapSeconds,
+             load_avg AS loadAvg, disk_total_io AS diskTotalIO,
+             net_rx_bytes AS netRxBytes, net_tx_bytes AS netTxBytes, fs_used_percent AS fsUsedPercent
       FROM snapshots
       WHERE timestamp > ?
       ORDER BY timestamp ASC
+      LIMIT 240
     `);
     return stmt.all(cutoff) as any[];
   }
@@ -523,8 +682,12 @@ export class TimeSeriesDB {
       JOIN snapshots s ON ps.snapshot_id = s.id
       WHERE ps.name LIKE ? AND s.timestamp > ?
       ORDER BY s.timestamp ASC
+      LIMIT 1000
     `);
-    return stmt.all(`%${name}%`, sinceTimestamp) as any[];
+    return (stmt.all(`%${name}%`, sinceTimestamp) as any[]).map(row => ({
+      ...row,
+      cmdline: safeExecutableName(String(row.executable || row.name || row.cmdline || 'unknown')),
+    }));
   }
 
   getProcessStats(name: string, sinceTimestamp: number): { avgCpu: number; peakCpu: number; avgMem: number; peakMem: number; samples: number } | null {
@@ -543,6 +706,7 @@ export class TimeSeriesDB {
   }
 
   getTopProcesses(metric: 'cpu' | 'mem', limit: number, sinceTimestamp: number): any[] {
+    const safeLimit = Math.min(Math.max(Number.isFinite(limit) ? limit : 10, 1), 100);
     const avgCol = metric === 'cpu' ? 'AVG(cpu_percent)' : 'AVG(memory_percent)';
     const peakCol = metric === 'cpu' ? 'MAX(cpu_percent)' : 'MAX(memory_percent)';
 
@@ -560,7 +724,7 @@ export class TimeSeriesDB {
       ORDER BY avg_${metric} DESC
       LIMIT ?
     `);
-    const rows = stmt.all(sinceTimestamp, limit) as any[];
+    const rows = stmt.all(sinceTimestamp, safeLimit) as any[];
     return rows.map(r => ({
       ...r,
       values: r.cpu_values ? r.cpu_values.split(',').map(Number) : [],

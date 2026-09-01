@@ -12,6 +12,8 @@
     "check-gateway": "tsx src/scripts/check-gateway-health.ts",
     "check-anomalies": "tsx src/scripts/check-anomalies.ts",
     "start": "node dist/main.js",
+    "test:watchdog": "node dist/test-watchdog-evidence.js",
+    "test:watchdog-storage": "node dist/test-watchdog-storage.js",
     "test": "jest"
   },
   "keywords": [

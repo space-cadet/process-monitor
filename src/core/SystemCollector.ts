@@ -8,6 +8,7 @@ import {
   SystemInfo,
   SystemSnapshot,
 } from '../types/index.js';
+import { applyProcessEvidence, collectHostEvidence, collectPsEvidence, isRelevantProcess } from './WatchdogEvidence.js';
 
 /**
  * Collects system information using systeminformation library.
@@ -19,6 +20,10 @@ export class SystemCollector {
   private prevDiskIO: { rIO: number; wIO: number; timestamp: number } | null = null;
   private sampleIntervalSeconds = 30;
   private latestSnapshot: SystemSnapshot | null = null;
+  private previousSampleTimestamp: number | null = null;
+  private lastProcessCounts = { total: 0, relevant: 0, unique: 0 };
+  private previousPids: Set<number> | null = null;
+  private currentPidChurnPercent: number | null = null;
 
   getLatestSnapshot(): SystemSnapshot | null {
     return this.latestSnapshot;
@@ -112,7 +117,7 @@ export class SystemCollector {
     // On macOS, fetch energy impact data from top
     const energyMap = process.platform === 'darwin' ? this.getMacOSEnergyMap() : new Map<number, number>();
 
-    return procs.list.map((p) => ({
+    const mapped = procs.list.map((p) => ({
       pid: p.pid,
       name: p.name,
       cpuPercent: p.cpu,
@@ -123,9 +128,30 @@ export class SystemCollector {
       vmsMB: Math.round(p.memVsz / 1024 / 1024 * 100) / 100,
       nice: p.nice ?? 0,
       state: p.state ?? 'unknown',
-      cmdline: p.command || p.name,
+      cmdline: p.name,
       energyMJ: energyMap.get(p.pid) ?? null,
     }));
+    // The separate ps pass supplies PPID/user/elapsed/state without storing
+    // command-line arguments. Keep all relevant families plus the usual CPU top.
+    const psRows = collectPsEvidence();
+    this.lastProcessCounts = {
+      total: psRows.length,
+      relevant: psRows.filter(row => row.processGroup !== 'other').length,
+      unique: new Set(psRows.map(row => row.pid)).size,
+    };
+    const currentPids = new Set(psRows.map(row => row.pid));
+    if (this.previousPids && this.previousPids.size > 0) {
+      let changed = 0;
+      for (const pid of currentPids) if (!this.previousPids.has(pid)) changed++;
+      for (const pid of this.previousPids) if (!currentPids.has(pid)) changed++;
+      this.currentPidChurnPercent = changed / Math.max(this.previousPids.size, 1) * 100;
+    }
+    this.previousPids = currentPids;
+    const enriched = applyProcessEvidence(mapped, psRows);
+    const selected = enriched
+      .filter((p) => isRelevantProcess(p.name, p.executable) || p.cpuPercent > 0)
+      .sort((a, b) => b.cpuPercent - a.cpuPercent);
+    return selected.slice(0, 75);
   }
 
   async getSystemSnapshot(): Promise<SystemSnapshot> {
@@ -229,8 +255,13 @@ export class SystemCollector {
       cpuThreads: (cpuInfo as any).threads || (cpuInfo as any).cores || 0,
     };
 
-    const result = {
-      timestamp: Date.now(),
+    const timestamp = Date.now();
+    const relevantProcessCount = this.lastProcessCounts.relevant || processes.filter(p => p.processGroup && p.processGroup !== 'other').length;
+    const result: SystemSnapshot = {
+      timestamp,
+      hostEvidence: collectHostEvidence(this.previousSampleTimestamp, relevantProcessCount,
+        this.lastProcessCounts.total || processes.length, this.lastProcessCounts.unique || new Set(processes.map(p => p.pid)).size,
+        this.currentPidChurnPercent),
       battery,
       processes: processes.sort((a, b) => b.cpuPercent - a.cpuPercent).slice(0, 50),
       // CPU
@@ -265,6 +296,10 @@ export class SystemCollector {
       systemInfo,
     };
 
+    result.hostEvidence!.availableMemoryMB = Number.isFinite(mem.available)
+      ? Math.round(mem.available / 1024 / 1024 * 100) / 100
+      : null;
+    this.previousSampleTimestamp = timestamp;
     this.latestSnapshot = result;
     return result;
   }

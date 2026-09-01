@@ -15,7 +15,7 @@ const collector = new SystemCollector();
 
 // ─── Monitor ───
 const monitor = new Monitor({
-  sampleIntervalSeconds: 30,
+  sampleIntervalSeconds: 15,
   dbPath,
   retentionDays: 30,
   alert: {
@@ -254,16 +254,16 @@ async function start() {
 }
 
 // ─── Graceful Shutdown ───
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('\n[Combined] SIGINT received, shutting down...');
-  monitor.stop();
+  await monitor.stop();
   db.close();
   server.close(() => process.exit(0));
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('\n[Combined] SIGTERM received, shutting down...');
-  monitor.stop();
+  await monitor.stop();
   db.close();
   server.close(() => process.exit(0));
 });

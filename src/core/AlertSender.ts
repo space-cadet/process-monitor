@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import type { DrainEvent, ProcessSpike, BatteryImpactEvent, AlertConfig } from '../types/index.js';
+import type { DrainEvent, ProcessSpike, BatteryImpactEvent, AlertConfig, WatchdogAlert } from '../types/index.js';
 
 const execAsync = promisify(exec);
 
@@ -70,6 +70,15 @@ export class AlertSender {
     await Promise.all([
       this.sendTelegram(title, message),
       this.sendMacOSNotification(title, `${event.batteryDropPercent.toFixed(1)}% drop, ${event.processImpacts.length} processes affected`),
+    ]);
+  }
+
+  async sendWatchdogAlert(alert: WatchdogAlert): Promise<void> {
+    const title = `🧭 Process Monitor Evidence: ${alert.type}`;
+    const message = `${alert.timestampUtc}\n${alert.observation}`;
+    await Promise.all([
+      this.sendTelegram(title, message),
+      this.sendMacOSNotification(title, alert.observation.slice(0, 220)),
     ]);
   }
 

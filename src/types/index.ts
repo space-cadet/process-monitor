@@ -64,7 +64,12 @@ export interface BatterySample {
 // Process snapshot - CPU/memory for one process
 export interface ProcessSnapshot {
   pid: number;
+  ppid?: number | null;
+  user?: string;
   name: string;
+  executable?: string;
+  processGroup?: string;
+  safeIdentifier?: string | null;
   cpuPercent: number;       // total CPU %
   cpuUserPercent: number;   // user-space CPU %
   cpuSystemPercent: number; // kernel-space CPU %
@@ -73,13 +78,54 @@ export interface ProcessSnapshot {
   vmsMB: number;
   nice: number;             // process priority/nice value
   state: string;            // running, sleeping, etc.
+  elapsed?: string;
+  // Deliberately contains only a sanitized executable/safe identifier.
+  // Complete command lines are never stored by the watchdog evidence path.
   cmdline: string;
   energyMJ?: number | null;        // macOS energy impact score (from top POWER column)
+}
+
+export interface VmStatEvidence {
+  pageSizeBytes: number | null;
+  pagesFree: number | null;
+  pagesActive: number | null;
+  pagesInactive: number | null;
+  pagesWired: number | null;
+  pagesCompressed: number | null;
+  pagesPurged: number | null;
+  pageins: number | null;
+  pageouts: number | null;
+  swapins: number | null;
+  swapouts: number | null;
+  compressorBytes: number | null;
+}
+
+export interface SwapUsageEvidence {
+  totalBytes: number | null;
+  usedBytes: number | null;
+  freeBytes: number | null;
+  usedPercent: number | null;
+}
+
+export interface HostEvidence {
+  timestampUtc: string;
+  timestampIst: string;
+  memoryPressure: string | null;
+  memoryPressurePercent: number | null;
+  swapUsage: SwapUsageEvidence;
+  vmStat: VmStatEvidence;
+  availableMemoryMB: number | null;
+  processCount: number;
+  relevantProcessCount: number;
+  uniquePidCount: number;
+  pidChurnPercent: number | null;
+  sampleGapSeconds: number | null;
 }
 
 // System snapshot - everything at one timestamp
 export interface SystemSnapshot {
   timestamp: number;
+  hostEvidence?: HostEvidence;
   battery: BatterySample;
   processes: ProcessSnapshot[];
   // CPU breakdown
@@ -208,9 +254,33 @@ export interface AlertConfig {
   cooldownMinutes: number;    // minutes between alerts
 }
 
+export interface WatchdogEvidenceConfig {
+  enabled: boolean;
+  incidentHistoryMinutes: number;
+  maxHistorySamples: number;
+  pressureAlertPercent: number;
+  swapGrowthMBPerMinute: number;
+  pagingPerMinute: number;
+  relevantCpuPercent: number;
+  relevantRssMB: number;
+  pidChurnPercent: number;
+  maxSamplingGapSeconds: number;
+  hysteresisClearRatio: number;
+}
+
+export interface WatchdogAlert {
+  id: string;
+  type: string;
+  observedAt: number;
+  timestampUtc: string;
+  observation: string;
+  severity: 'info' | 'warning' | 'critical';
+  active: boolean;
+}
+
 // Monitor configuration
 export interface MonitorConfig {
-  sampleIntervalSeconds: number;   // how often to sample (default: 30)
+  sampleIntervalSeconds: number;   // how often to sample (default: 15)
   dbPath: string;
   retentionDays: number;
   retentionSizeMB: number;         // max DB size before cleanup (default: 400)
@@ -221,4 +291,5 @@ export interface MonitorConfig {
   alert: AlertConfig;
   spike: SpikeConfig;
   batteryImpact: BatteryImpactConfig;
+  watchdogEvidence: WatchdogEvidenceConfig;
 }

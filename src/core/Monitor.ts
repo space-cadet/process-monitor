@@ -8,6 +8,7 @@ import { TimeSeriesDB } from '../storage/TimeSeriesDB.js';
 import { MonitorConfig, DrainEvent, ProcessSpike, BatteryImpactEvent } from '../types/index.js';
 import { loadConfig } from '../config/ConfigManager.js';
 import { statSync } from 'fs';
+import { WatchdogAlertDetector } from './WatchdogAlertDetector.js';
 
 /**
  * Main monitor orchestrator.
@@ -25,6 +26,8 @@ export class Monitor {
   private timer: NodeJS.Timeout | null = null;
   private isRunning = false;
   private tickCount = 0;
+  private watchdogAlerts: WatchdogAlertDetector;
+  private pendingTick: Promise<void> | null = null;
 
   constructor(config: Partial<MonitorConfig> = {}) {
     // Load from file first, then override with passed config
@@ -35,7 +38,9 @@ export class Monitor {
       alert: { ...fileConfig.alert, ...config.alert },
       spike: { ...fileConfig.spike, ...config.spike },
       batteryImpact: { ...fileConfig.batteryImpact, ...config.batteryImpact },
+      watchdogEvidence: { ...fileConfig.watchdogEvidence, ...config.watchdogEvidence },
     };
+    this.config.sampleIntervalSeconds = Math.max(1, Number(this.config.sampleIntervalSeconds) || 15);
 
     this.collector = new SystemCollector();
     this.analyzer = new DrainAnalyzer(
@@ -52,6 +57,7 @@ export class Monitor {
       this.config.batteryImpact.minDurationMinutes
     );
     this.db = new TimeSeriesDB(this.config.dbPath);
+    this.watchdogAlerts = new WatchdogAlertDetector(this.config.watchdogEvidence);
     this.alertSender = new AlertSender(this.config.alert);
     this.sleepWakeDetector = new SleepWakeDetector({
       onEvent: (event) => {
@@ -75,24 +81,31 @@ export class Monitor {
     this.sleepWakeDetector.start();
 
     // Initial sample
-    await this.tick();
+    await this.runTick();
 
     // Schedule recurring samples
     this.timer = setInterval(
-      () => this.tick(),
+      () => { void this.runTick(); },
       this.config.sampleIntervalSeconds * 1000
     );
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
     this.isRunning = false;
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
     }
     this.sleepWakeDetector.stop();
+    if (this.pendingTick) await this.pendingTick;
     this.db.close();
     console.log('[Monitor] Stopped');
+  }
+
+  private runTick(): Promise<void> {
+    if (this.pendingTick) return this.pendingTick;
+    this.pendingTick = this.tick().finally(() => { this.pendingTick = null; });
+    return this.pendingTick;
   }
 
   private async tick(): Promise<void> {
@@ -105,6 +118,20 @@ export class Monitor {
       let snapshotId: number | null = null;
       if (this.config.logBattery) {
         snapshotId = this.db.insertSnapshot(snapshot, this.config.logProcesses);
+      }
+
+      if (this.config.watchdogEvidence.enabled) {
+        const alerts = this.watchdogAlerts.evaluate(snapshot);
+        for (const alert of alerts) {
+          this.db.insertWatchdogAlert(alert);
+          console.warn(`[Monitor] Evidence alert ${alert.type} at ${alert.timestampUtc}: ${alert.observation}`);
+          this.db.createIncidentBundle(alert.observation, alert.observedAt);
+          if (this.config.alert.enabled) {
+            this.alertSender.sendWatchdogAlert(alert).catch(err =>
+              console.error('[Monitor] Evidence alert delivery failed:', err)
+            );
+          }
+        }
       }
       
       // Feed to analyzer

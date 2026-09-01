@@ -1,8 +1,20 @@
 # Edit History
 
-*Last Updated: 2026-06-26 10:09:15 IST*
+*Last Updated: 2026-09-01 21:32:36 IST*
 
 ---
+
+## 2026-09-01
+
+#### 21:32:36 IST - T24: Watchdog evidence collection and correlation
+- Created `src/core/WatchdogEvidence.ts` - parsers and privacy-safe host/process evidence collection.
+- Created `src/core/WatchdogAlertDetector.ts` - threshold alerts, hysteresis, sampling-gap detection, and observation-only wording.
+- Created `src/core/ResponseLimit.ts` - bounded API JSON serialization.
+- Created `src/test-watchdog-evidence.ts` and `src/test-watchdog-storage.ts` - focused evidence and durable-storage coverage.
+- Modified `src/core/Monitor.ts`, `src/core/SystemCollector.ts`, `src/storage/TimeSeriesDB.ts`, and `src/types/index.ts` - persist and expose bounded watchdog evidence.
+- Modified `src/web/server.ts`, `src/core/AlertSender.ts`, `src/config/ConfigManager.ts`, `src/main.ts`, `src/combined.ts`, `start-monitor.sh`, and `package.json` - expose evidence endpoints and apply configurable sampling.
+- Created `docs/WATCHDOG-EVIDENCE.md` - document fields, privacy limits, alerts, retention, and verification.
+- Created and modified Memory Bank task, session, cache, context, progress, changelog, error, and edit records for T24.
 
 ## 2026-06-26
 
@@ -29,4 +41,3 @@
 - Modified `web/public/app.js` - Modified web/public/app.js
 
 #### 06:53:06 IST - T20: Design: Dashboard detail views with clickable KPI cards. CPU→process list, Memory→memory details, Disk→disk/volume list, Network→interface list+connections, Battery→battery history+per-process energy.
-

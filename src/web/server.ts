@@ -9,6 +9,8 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync, exec } from 'child_process';
 import QRCode from 'qrcode';
+import { safeExecutableName } from '../core/WatchdogEvidence.js';
+import { serializeBoundedJson } from '../core/ResponseLimit.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -73,8 +75,15 @@ type PsProcessInfo = {
 };
 
 function json(res: any, status: number, payload: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(payload));
+  const serialized = serializeBoundedJson(payload);
+  if (serialized.tooLarge) {
+    res.writeHead(413, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'response exceeds 2 MB safety limit' }));
+    return;
+  }
+  const body = serialized.body;
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) });
+  res.end(body);
 }
 
 function parseCpuTime(value: string): number {
@@ -96,7 +105,7 @@ function parsePsOutput(output: string): PsProcessInfo[] {
     const parts = line.trim().match(/^(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(.+?)\s{2,}(.*)$/);
     if (!parts) return null;
     const comm = parts[10] || '';
-    const command = parts[11] || comm;
+    const command = safeExecutableName(comm);
     return {
       pid: Number(parts[1]),
       ppid: Number(parts[2]),
@@ -233,7 +242,7 @@ const server = createServer(async (req, res) => {
 
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -247,8 +256,7 @@ const server = createServer(async (req, res) => {
     try {
       // Always use live collection for current snapshot
       const snapshot = await collector.getSystemSnapshot();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(snapshot));
+      json(res, 200, snapshot);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));
@@ -258,13 +266,39 @@ const server = createServer(async (req, res) => {
 
   if (pathname === '/api/history') {
     try {
-      const minutes = parseInt(url.searchParams.get('minutes') || '60');
+      const minutes = Math.min(Math.max(parseInt(url.searchParams.get('minutes') || '60', 10) || 60, 1), 60);
       const history = db.getSnapshotHistory(minutes);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(history));
+      json(res, 200, history);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/evidence-alerts' && req.method === 'GET') {
+    try {
+      const minutes = Math.min(Math.max(parseInt(url.searchParams.get('minutes') || '60', 10) || 60, 1), 60);
+      const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '100', 10) || 100, 1), 100);
+      json(res, 200, { minutes, limit, alerts: db.getWatchdogAlerts(minutes, limit) });
+    } catch (err) {
+      json(res, 500, { error: (err as Error).message });
+    }
+    return;
+  }
+
+  if (pathname === '/api/incident-bundle' && req.method === 'POST') {
+    try {
+      let body = '';
+      req.on('data', chunk => { if (body.length < 2000) body += chunk.toString(); });
+      req.on('end', () => {
+        let reason = 'Manual incident evidence bundle requested';
+        try { reason = String(JSON.parse(body || '{}').reason || reason).slice(0, 500); } catch { /* default reason */ }
+        const bundlePath = db.createIncidentBundle(reason);
+        json(res, bundlePath ? 200 : 500, { success: Boolean(bundlePath), bundlePath });
+      });
+    } catch (err) {
+      json(res, 500, { error: (err as Error).message });
     }
     return;
   }
@@ -302,8 +336,7 @@ const server = createServer(async (req, res) => {
       const minutes = parseInt(url.searchParams.get('minutes') || '30');
       const cutoff = Date.now() - minutes * 60000;
       const history = db.getProcessHistory(name, cutoff);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(history));
+      json(res, 200, history);
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: (err as Error).message }));
@@ -445,7 +478,7 @@ const server = createServer(async (req, res) => {
           rssMB: live.rssKB / 1024,
           elapsed: live.elapsed,
           cpuTime: live.cpuTime,
-          executable: live.comm,
+          executable: safeExecutableName(live.comm),
           command: live.command,
           kind: inferProcessKind(live),
           launchdLabel: findLaunchdHint(live),

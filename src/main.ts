@@ -6,7 +6,6 @@ import { Monitor } from './core/Monitor.js';
  */
 async function main() {
   const monitor = new Monitor({
-    sampleIntervalSeconds: 30,
     dbPath: '~/.procmon/monitor.db',
     retentionDays: 30,
     alert: {
@@ -18,15 +17,15 @@ async function main() {
   });
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
+  process.on('SIGINT', async () => {
     console.log('\n[Main] SIGINT received, shutting down...');
-    monitor.stop();
+    await monitor.stop();
     process.exit(0);
   });
 
-  process.on('SIGTERM', () => {
+  process.on('SIGTERM', async () => {
     console.log('\n[Main] SIGTERM received, shutting down...');
-    monitor.stop();
+    await monitor.stop();
     process.exit(0);
   });
 

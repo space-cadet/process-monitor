@@ -1,8 +1,25 @@
 # Active Context
 
-*Last Updated: 2026-08-08 05:10 IST*
+*Last Updated: 2026-09-01 21:32 IST*
 
 ## Current Tasks
+
+### ✅ T24: Watchdog Evidence Collection and Correlation — Implementation Complete
+**Status:** Evidence collection, bounded persistence, alerts, incident bundles, and API exposure are implemented. Deployment into the separately loaded sage checkout and live dashboard verification remain pending.
+**Started:** 2026-09-01. Completed: 2026-09-01.
+
+**What was done:**
+- Added configurable 15-second host/process sampling with UTC and IST timestamps.
+- Added memory pressure, `vm.swapusage`, `vm_stat`, available-memory, load, uptime, process-family, PID-churn, and sampling-gap evidence.
+- Added privacy-safe process names/identifiers, bounded durable history, threshold alerts with hysteresis, and atomic incident bundles.
+- Extended current snapshot/history APIs and bounded JSON responses.
+- Added focused parser, alert, gap, storage, and API-limit coverage; TypeScript and pure evidence tests pass.
+
+**Verification limits:**
+- Existing Jest command stops during Babel parsing before executing tests.
+- Storage test is blocked by a local `better-sqlite3` ABI mismatch.
+- Loaded LaunchDaemons point at `/Users/sage/.openclaw/workspace/code/process-monitor`; this workspace is `/Users/deepak/code/process-monitor`.
+- Checked-in plists retain `sage` ownership and compiled entry points. Port 3456 was unavailable during the live probe.
 
 ### ✅ T23: TypeScript Compilation — Complete
 **Status:** All source fixed, compiled to dist/, services running with plain node.
