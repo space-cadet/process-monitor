@@ -2600,7 +2600,7 @@ async function loadWatchdogAlerts(loadHistory = false) {
 
     // Render active alerts
     if (container) {
-      const activeAlerts = watchdogAlertsData.filter(a => !a.resolvedAt);
+      const activeAlerts = watchdogAlertsData.filter(a => a.active);
       if (activeAlerts.length === 0) {
         container.innerHTML = `
           <div class="watchdog-empty">
@@ -2633,11 +2633,11 @@ async function loadWatchdogAlerts(loadHistory = false) {
             <tbody>
               ${historyAlerts.map(a => `
                 <tr>
-                  <td>${new Date(a.timestamp).toLocaleTimeString()}</td>
+                  <td>${new Date(a.timestampUtc || a.timestamp || a.observedAt).toLocaleTimeString()}</td>
                   <td><span class="watchdog-alert-type ${a.severity}">${a.type}</span></td>
                   <td>${a.severity}</td>
                   <td>${escapeHtml(a.observation || '').substring(0, 60)}${(a.observation || '').length > 60 ? '...' : ''}</td>
-                  <td>${a.resolvedAt ? '✅ Resolved' : '🚨 Active'}</td>
+                  <td>${a.active ? '🚨 Active' : '✅ Resolved'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2649,7 +2649,7 @@ async function loadWatchdogAlerts(loadHistory = false) {
     // Update tab badge
     const badge = document.getElementById('watchdogBadge');
     if (badge) {
-      const activeCount = watchdogAlertsData.filter(a => !a.resolvedAt).length;
+      const activeCount = watchdogAlertsData.filter(a => a.active).length;
       badge.textContent = activeCount;
       badge.style.display = activeCount > 0 ? 'inline-block' : 'none';
     }
@@ -2670,7 +2670,7 @@ function renderWatchdogAlert(alert) {
   const severity = alert.severity || 'info';
   const iconMap = { critical: '🔴', warning: '⚠️', info: 'ℹ️' };
   const icon = iconMap[severity] || 'ℹ️';
-  const time = new Date(alert.timestamp).toLocaleTimeString();
+  const time = new Date(alert.timestampUtc || alert.timestamp || alert.observedAt).toLocaleTimeString();
 
   return `
     <div class="watchdog-alert-item ${severity}">
@@ -2708,7 +2708,9 @@ async function createIncidentBundle(alertId = null) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    alert(`✅ Incident bundle created!\n\nPath: ${data.path}\nSize: ${data.sizeMB.toFixed(2)} MB`);
+    const path = data.path || data.bundlePath || 'saved incident bundle';
+    const sizeMB = Number(data.sizeMB ?? (data.size ? data.size / (1024 * 1024) : 0));
+    alert(`✅ Incident bundle created!\n\nPath: ${path}\nSize: ${sizeMB.toFixed(2)} MB`);
   } catch (err) {
     alert(`❌ Failed to create bundle: ${err.message}`);
   } finally {
@@ -2720,18 +2722,31 @@ async function createIncidentBundle(alertId = null) {
 }
 
 async function loadIncidentBundles() {
-  // This would list bundles from the incidents directory
-  // For now, show a placeholder
   const container = document.getElementById('watchdogHistory');
-  if (container) {
-    container.innerHTML = `
-      <div class="watchdog-empty">
-        <div class="watchdog-empty-icon">📂</div>
-        <h4 style="color: var(--text-bright); margin-bottom: 4px;">Incident Bundles</h4>
-        <p>Bundles are stored in <code>~/.procmon/incidents/</code></p>
-        <p style="margin-top: 8px; font-size: 11px;">Use "Create Incident Bundle" to capture current system state.</p>
-      </div>
+  if (!container) return;
+  container.innerHTML = '<div class="watchdog-empty"><div>⏳</div>Loading incident bundles...</div>';
+  try {
+    const res = await fetch(`${API_BASE}/api/incident-bundles`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const bundles = data.bundles || [];
+    container.innerHTML = bundles.length === 0 ? `
+      <div class="watchdog-empty"><div class="watchdog-empty-icon">📭</div><p>No incident bundles yet.</p></div>
+    ` : `
+      <table class="watchdog-history-table">
+        <thead><tr><th>Bundle</th><th>Modified</th><th>Size</th><th></th></tr></thead>
+        <tbody>${bundles.map(bundle => `
+          <tr>
+            <td>${escapeHtml(bundle.name)}</td>
+            <td>${new Date(bundle.modifiedAt).toLocaleString()}</td>
+            <td>${Number(bundle.sizeMB || 0).toFixed(2)} MB</td>
+            <td><a class="panel-btn" href="${API_BASE}/api/incident-bundle?name=${encodeURIComponent(bundle.name)}" download>Download</a></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
     `;
+  } catch (err) {
+    container.innerHTML = `<div class="watchdog-empty"><div class="watchdog-empty-icon">❌</div><p>${escapeHtml(err.message)}</p></div>`;
   }
 }
 

@@ -4,7 +4,7 @@ import { DeviceRegistry } from '../core/DeviceRegistry.js';
 import { getIdentity, getDid, getName } from '../core/DeviceIdentity.js';
 import { loadConfig, saveConfig } from '../config/ConfigManager.js';
 import { createServer } from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, statSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync, exec } from 'child_process';
@@ -293,13 +293,68 @@ const server = createServer(async (req, res) => {
       req.on('data', chunk => { if (body.length < 2000) body += chunk.toString(); });
       req.on('end', () => {
         let reason = 'Manual incident evidence bundle requested';
-        try { reason = String(JSON.parse(body || '{}').reason || reason).slice(0, 500); } catch { /* default reason */ }
-        const bundlePath = db.createIncidentBundle(reason);
-        json(res, bundlePath ? 200 : 500, { success: Boolean(bundlePath), bundlePath });
+        let alertId: string | null = null;
+        try {
+          const parsed = JSON.parse(body || '{}');
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.reason) reason = String(parsed.reason).slice(0, 500);
+            if (parsed.alertId != null) alertId = String(parsed.alertId);
+          }
+        } catch { /* default reason */ }
+        if (alertId) {
+          const alert = db.getWatchdogAlert(alertId);
+          if (!alert) {
+            json(res, 404, { success: false, error: 'watchdog alert not found', alertId });
+            return;
+          }
+          if (reason === 'Manual incident evidence bundle requested') {
+            reason = `Watchdog alert: ${alert.type} — ${alert.observation}`.slice(0, 500);
+          }
+        }
+        const bundlePath = db.createIncidentBundle(reason, Date.now(), alertId);
+        if (!bundlePath) {
+          json(res, 500, { success: false, error: 'failed to create incident bundle' });
+          return;
+        }
+        const size = statSync(bundlePath).size;
+        json(res, 200, {
+          success: true,
+          path: bundlePath,
+          bundlePath,
+          size,
+          sizeMB: Number((size / (1024 * 1024)).toFixed(2)),
+          alertId,
+        });
       });
     } catch (err) {
       json(res, 500, { error: (err as Error).message });
     }
+    return;
+  }
+
+  if (pathname === '/api/incident-bundles' && req.method === 'GET') {
+    try {
+      json(res, 200, { bundles: db.listIncidentBundles() });
+    } catch (err) {
+      json(res, 500, { error: (err as Error).message });
+    }
+    return;
+  }
+
+  if (pathname === '/api/incident-bundle' && req.method === 'GET') {
+    const name = url.searchParams.get('name') || '';
+    const bundlePath = db.getIncidentBundlePath(name);
+    if (!bundlePath) {
+      json(res, 404, { error: 'incident bundle not found' });
+      return;
+    }
+    const stats = statSync(bundlePath);
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Content-Length': stats.size,
+      'Content-Disposition': `attachment; filename="${name}"`,
+    });
+    res.end(readFileSync(bundlePath));
     return;
   }
 

@@ -124,6 +124,7 @@ export class Monitor {
         const alerts = this.watchdogAlerts.evaluate(snapshot);
         for (const alert of alerts) {
           this.db.insertWatchdogAlert(alert);
+          if (!alert.active) continue;
           console.warn(`[Monitor] Evidence alert ${alert.type} at ${alert.timestampUtc}: ${alert.observation}`);
           this.db.createIncidentBundle(alert.observation, alert.observedAt);
           if (this.config.alert.enabled) {

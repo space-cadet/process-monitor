@@ -7,7 +7,7 @@ import { SystemSnapshot, WatchdogAlert, WatchdogEvidenceConfig } from '../types/
  */
 export class WatchdogAlertDetector {
   private previous: SystemSnapshot | null = null;
-  private active = new Set<string>();
+  private active = new Map<string, WatchdogAlert>();
 
   constructor(private readonly config: WatchdogEvidenceConfig) {}
 
@@ -17,12 +17,24 @@ export class WatchdogAlertDetector {
     const host = snapshot.hostEvidence;
     if (!host) return [];
     const alerts: WatchdogAlert[] = [];
+    const resolve = (key: string) => {
+      const existing = this.active.get(key);
+      if (!existing) return;
+      this.active.delete(key);
+      alerts.push({
+        ...existing,
+        observedAt: now,
+        timestampUtc: new Date(now).toISOString(),
+        active: false,
+      });
+    };
     const observe = (key: string, condition: boolean, observation: string, severity: WatchdogAlert['severity'] = 'warning', clearCondition = !condition) => {
       if (condition && !this.active.has(key)) {
-        this.active.add(key);
-        alerts.push(this.create(key, now, observation, severity, true));
-      } else if (clearCondition && this.active.has(key)) {
-        this.active.delete(key);
+        const alert = this.create(key, now, observation, severity, true);
+        this.active.set(key, alert);
+        alerts.push(alert);
+      } else if (clearCondition) {
+        resolve(key);
       }
     };
 
@@ -59,14 +71,19 @@ export class WatchdogAlertDetector {
       `Observed sustained VM paging/swap activity of ${(paging + swapping).toFixed(1)} events/min.`, 'warning', paging + swapping <= this.config.pagingPerMinute * this.config.hysteresisClearRatio);
 
     const relevant = snapshot.processes.filter(p => p.processGroup && p.processGroup !== 'other');
+    const currentProcessKeys = new Set<string>();
     for (const process of relevant) {
       const key = `process:${process.pid}`;
+      currentProcessKeys.add(key);
       const highCpu = process.cpuPercent >= this.config.relevantCpuPercent;
       const highRss = process.rssMB >= this.config.relevantRssMB;
       observe(key, highCpu || highRss,
         `Observed contributor ${process.processGroup}/${process.executable || process.name} (PID ${process.pid}) at ${process.cpuPercent.toFixed(1)}% CPU and ${process.rssMB.toFixed(1)} MB RSS; correlation is not causation.`,
         highRss && process.cpuPercent >= this.config.relevantCpuPercent ? 'critical' : 'warning',
         process.cpuPercent <= this.config.relevantCpuPercent * this.config.hysteresisClearRatio && process.rssMB <= this.config.relevantRssMB * this.config.hysteresisClearRatio);
+    }
+    for (const key of this.active.keys()) {
+      if (key.startsWith('process:') && !currentProcessKeys.has(key)) resolve(key);
     }
 
     const previousCount = this.previous?.hostEvidence?.processCount;

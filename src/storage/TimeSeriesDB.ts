@@ -403,22 +403,33 @@ export class TimeSeriesDB {
       INSERT OR IGNORE INTO watchdog_alerts
         (id, type, observed_at, timestamp_utc, severity, observation, active)
       VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET active = excluded.active
     `).run(alert.id, alert.type, alert.observedAt, alert.timestampUtc, alert.severity, alert.observation, alert.active ? 1 : 0);
+  }
+
+  getWatchdogAlert(id: string): any | null {
+    const row = this.db.prepare(`
+      SELECT id, type, observed_at AS observedAt, timestamp_utc AS timestampUtc,
+             severity, observation, active
+      FROM watchdog_alerts WHERE id = ?
+    `).get(id) as any;
+    return row ? { ...row, active: Boolean(row.active) } : null;
   }
 
   getWatchdogAlerts(minutes: number = 60, limit: number = 100): any[] {
     const safeMinutes = Math.min(Math.max(Number.isFinite(minutes) ? minutes : 60, 1), 60);
     const safeLimit = Math.min(Math.max(Number.isFinite(limit) ? limit : 100, 1), 100);
-    return this.db.prepare(`
+    const rows = this.db.prepare(`
       SELECT id, type, observed_at AS observedAt, timestamp_utc AS timestampUtc,
              severity, observation, active
       FROM watchdog_alerts WHERE observed_at > ?
       ORDER BY observed_at DESC LIMIT ?
-    `).all(Date.now() - safeMinutes * 60000, safeLimit);
+    `).all(Date.now() - safeMinutes * 60000, safeLimit) as any[];
+    return rows.map(row => ({ ...row, active: Boolean(row.active) }));
   }
 
   /** Write a bounded, sanitized incident bundle atomically for later review. */
-  createIncidentBundle(reason: string, observedAt: number = Date.now()): string | null {
+  createIncidentBundle(reason: string, observedAt: number = Date.now(), alertId: string | null = null): string | null {
     try {
       const incidentDir = path.join(path.dirname(this.dbPath), 'incidents');
       fs.mkdirSync(incidentDir, { recursive: true, mode: 0o700 });
@@ -431,6 +442,7 @@ export class TimeSeriesDB {
         observedAt,
         timestampUtc: new Date(observedAt).toISOString(),
         reason: reason.slice(0, 500),
+        alertId,
         history: this.getRecentSnapshotsRaw(60),
         latestProcesses: this.getLatestProcesses(100),
         alerts: this.getWatchdogAlerts(60, 100),
@@ -443,6 +455,32 @@ export class TimeSeriesDB {
       console.error('[TimeSeriesDB] Incident bundle failed:', (err as Error).message);
       return null;
     }
+  }
+
+  listIncidentBundles(limit: number = 50): any[] {
+    const safeLimit = Math.min(Math.max(Number.isFinite(limit) ? limit : 50, 1), 100);
+    const incidentDir = path.join(path.dirname(this.dbPath), 'incidents');
+    if (!fs.existsSync(incidentDir)) return [];
+    return fs.readdirSync(incidentDir, { withFileTypes: true })
+      .filter(entry => entry.isFile() && /^incident-[A-Za-z0-9_.-]+\.json$/.test(entry.name))
+      .map(entry => {
+        const filePath = path.join(incidentDir, entry.name);
+        const stats = fs.statSync(filePath);
+        return {
+          name: entry.name,
+          size: stats.size,
+          sizeMB: Number((stats.size / (1024 * 1024)).toFixed(2)),
+          modifiedAt: stats.mtimeMs,
+        };
+      })
+      .sort((a, b) => b.modifiedAt - a.modifiedAt)
+      .slice(0, safeLimit);
+  }
+
+  getIncidentBundlePath(name: string): string | null {
+    if (!/^incident-[A-Za-z0-9_.-]+\.json$/.test(name)) return null;
+    const filePath = path.join(path.dirname(this.dbPath), 'incidents', name);
+    return fs.existsSync(filePath) && fs.statSync(filePath).isFile() ? filePath : null;
   }
 
   /**

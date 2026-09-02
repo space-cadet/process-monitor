@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { TimeSeriesDB } from './storage/TimeSeriesDB.js';
@@ -28,6 +28,18 @@ try {
   db.insertSnapshot(sample, true);
   const bundle = db.createIncidentBundle('test pressure');
   assert.ok(bundle);
+  const alert = {
+    id: 'alert-1', type: 'memory-pressure', observedAt: now,
+    timestampUtc: new Date(now).toISOString(), severity: 'warning' as const,
+    observation: 'test', active: true,
+  };
+  db.insertWatchdogAlert(alert);
+  db.insertWatchdogAlert({ ...alert, active: false, observedAt: now + 1000, timestampUtc: new Date(now + 1000).toISOString() });
+  assert.equal(db.getWatchdogAlert('alert-1')?.active, false);
+  const linkedBundle = db.createIncidentBundle('linked alert', now + 1000, 'alert-1');
+  assert.ok(linkedBundle);
+  assert.equal(JSON.parse(readFileSync(linkedBundle, 'utf8')).alertId, 'alert-1');
+  assert.equal(db.listIncidentBundles().length, 2);
   assert.equal(db.getSnapshotHistory(999).length, 1);
   db.close();
   const reopened = new TimeSeriesDB(dbPath);

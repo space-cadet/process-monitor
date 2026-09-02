@@ -58,9 +58,13 @@ const snapshot = (timestamp: number, pressurePercent: number, swapUsed: number):
   diskReadIO: null, diskWriteIO: null, diskTotalIO: null, diskReadRate: null, diskWriteRate: null, netRxBytes: null, netTxBytes: null, networkInterfaces: [], fsUsedPercent: null, diskVolumes: [], cpuTemp: null,
   systemInfo: { platform: 'test', distro: 'test', release: '1', arch: 'arm64', hostname: 'test', uptime: 1, bootTime: 1, cpuModel: 'test', cpuCores: 8, cpuThreads: 8 },
 });
-assert.equal(detector.evaluate(snapshot(100000, 90, 100 * 1024 * 1024)).length, 1);
+const initialAlert = detector.evaluate(snapshot(100000, 90, 100 * 1024 * 1024))[0];
+assert.ok(initialAlert);
 assert.equal(detector.evaluate(snapshot(101000, 90, 200 * 1024 * 1024)).length, 1); // swap growth transition only once
-assert.equal(detector.evaluate(snapshot(102000, 60, 210 * 1024 * 1024)).length, 0); // hysteresis clears without a recovery alert
+const cleared = detector.evaluate(snapshot(102000, 60, 210 * 1024 * 1024));
+assert.equal(cleared.length, 1);
+assert.equal(cleared[0].active, false);
+assert.equal(cleared[0].id, initialAlert.id); // pressure is resolved in place; swap growth remains active
 const gap = snapshot(103000, 60, 220 * 1024 * 1024);
 gap.hostEvidence!.sampleGapSeconds = 60;
 assert.equal(detector.evaluate(gap).some(alert => alert.type === 'sampling-gap'), true);
