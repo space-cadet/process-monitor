@@ -40,8 +40,8 @@ The dashboard follows the existing single-page application architecture:
   - Shows success/error notification
 - **View Bundles card:**
   - Calls `loadIncidentBundles()`
-  - Displays bundle storage location (`~/.procmon/incidents/`)
-  - Shows creation timestamp and file count
+  - Fetches `/api/incident-bundles`
+  - Displays bundle names, creation timestamps, sizes, and download links
 
 ### 4. Alert History Panel (`#watchdog-history`)
 - **Function:** `loadAlertHistory()`
@@ -77,8 +77,8 @@ The dashboard follows the existing single-page application architecture:
 
 ### `loadIncidentBundles()`
 ```javascript
-// Shows bundle storage directory info
-// Displays last bundle timestamp if available
+// Fetches /api/incident-bundles
+// Renders saved bundle metadata and download links
 ```
 
 ### `loadAlertHistory()`
@@ -106,6 +106,8 @@ The dashboard follows the existing single-page application architecture:
 |----------|--------|---------|
 | `/api/evidence-alerts` | GET | Fetch active/historical alerts |
 | `/api/incident-bundle` | POST | Create manual incident bundle |
+| `/api/incident-bundles` | GET | List saved incident bundles |
+| `/api/incident-bundle?name=...` | GET | Download a saved incident bundle |
 
 ## Cache Busting
 
@@ -122,7 +124,7 @@ Assets are cache-busted via query parameters:
 ## Verification
 
 - ✅ 6 active alerts displayed correctly
-- ✅ 11 incident bundles created today
+- ✅ 11 incident bundles were present during the 2026-09-01 verification
 - ✅ APIs responding on port 3456
 - ✅ Dashboard serving with all 7 tabs functional
 - ✅ Auto-refresh working (30s interval)
@@ -134,3 +136,4 @@ Assets are cache-busted via query parameters:
 - Process names are sanitized (no full command lines)
 - Bundle creation is synchronous (no background job)
 - Alert history is client-side only (no server-side pagination)
+- Response-contract, alert-lifecycle, alert-ID, and bundle-listing fixes landed in commit `8bcf9c2`.

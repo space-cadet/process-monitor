@@ -1,3 +1,9 @@
+## 2026-09-03 — T24 Memory-bank Reconciliation
+
+- Reconciled project-status wording after T24 deployment and dashboard verification.
+- Updated the T24 dashboard implementation notes for incident-bundle listing and downloads.
+- Recorded commit `8bcf9c2` as the current implementation baseline.
+
 ## 2026-09-01 — T24 Watchdog Evidence Collection
 
 - Added configurable host and relevant-process sampling for future kernel-watchdog investigations.

@@ -1,7 +1,7 @@
 # Session Cache
 
 *Created: 2026-06-26 10:09:15 IST*
-*Last Updated: 2026-09-01 21:32:36 IST*
+*Last Updated: 2026-09-03 01:20:28 IST*
 
 **Started**: 2026-09-01 21:32:36 IST
 **Focus Task**: T24: Watchdog Evidence Collection and Correlation
@@ -46,6 +46,12 @@
   - Auto-refresh every 30s when tab is active
   - Cache-busted assets: `styles.css?v=5`, `app.js?v=9`
 - **Verified:** 6 active alerts, 11 incident bundles created today, APIs responding on port 3456.
+
+## 2026-09-03 Memory-bank Reconciliation
+
+- Confirmed the process-monitor project memory bank is authoritative for T24; the workspace T24 record is only a summary mirror.
+- Reconciled stale T24 deployment wording and updated the dashboard implementation notes to document bundle listing and downloads.
+- Current repository state is `8bcf9c2`; T22 remains the only active process-monitor task.
 
 ## Active Tasks
 

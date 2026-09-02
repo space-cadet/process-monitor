@@ -1,6 +1,6 @@
 # Active Context
 
-*Last Updated: 2026-09-01 21:32 IST*
+*Last Updated: 2026-09-03 01:20 IST*
 
 ## Current Tasks
 
@@ -23,6 +23,10 @@
 - `loadWatchdogAlerts()`, `createIncidentBundle()`, `renderWatchdogAlert()`, `loadIncidentBundles()` JS functions.
 - Cache-busted assets: `styles.css?v=5`, `app.js?v=9`.
 - Verified: 6 active alerts, 11 incident bundles created today, API endpoints responding correctly.
+
+**Memory-bank reconciliation (2026-09-03):** Corrected the stale project-status
+header and aligned the T24 dashboard notes with the current implementation at
+`8bcf9c2`. T22 remains the only active process-monitor task.
 
 ### ✅ T23: TypeScript Compilation — Complete
 **Status:** All source fixed, compiled to dist/, services running with plain node.
