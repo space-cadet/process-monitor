@@ -1,7 +1,7 @@
 # Session Cache
 
 *Created: 2026-06-26 10:09:15 IST*
-*Last Updated: 2026-09-03 01:20:28 IST*
+*Last Updated: 2026-09-03 02:37:16 IST*
 
 **Started**: 2026-09-01 21:32:36 IST
 **Focus Task**: T24: Watchdog Evidence Collection and Correlation
@@ -51,7 +51,19 @@
 
 - Confirmed the process-monitor project memory bank is authoritative for T24; the workspace T24 record is only a summary mirror.
 - Reconciled stale T24 deployment wording and updated the dashboard implementation notes to document bundle listing and downloads.
-- Current repository state is `8bcf9c2`; T22 remains the only active process-monitor task.
+- At reconciliation time the repository state was `8bcf9c2`; T22 remains the only active process-monitor task. The current deployed baseline is `b1cf1d9`.
+
+## 2026-09-03 Deployment and Test Follow-up
+
+- Fixed T24 alert lifecycle handling, incident-bundle response fields, alert-ID
+  propagation, bundle listing/downloads, and dashboard field names in `8bcf9c2`.
+- Confirmed the repository has no Jest tests; removed the unnecessary Jest
+  dependency and made Playwright the project test runner in `3b901a8`.
+- Remediated npm audit findings via lockfile dependency updates in `b1cf1d9`;
+  audit reported zero vulnerabilities afterward.
+- Build passed and Playwright E2E passed 5/5 against an isolated rebuilt server.
+- Restarted both LaunchDaemons with `b1cf1d9`; post-restart API smoke tests passed
+  on port 3456 and the repository remained clean.
 
 ## Active Tasks
 
@@ -71,7 +83,7 @@
 ## Next Session Focus
 
 1. Continue T22: Forensic Process Identification Layer
-2. ~~Deploy or synchronize the T24 build into the loaded sage checkout without unnecessary restarts.~~ — DONE: Dashboard UI deployed and verified.
+2. ~~Deploy or synchronize the T24 build into the loaded sage checkout without unnecessary restarts.~~ — DONE: Audited build deployed and verified.
 3. Re-run storage tests with a compatible `better-sqlite3` native module.
 
 ## System Status

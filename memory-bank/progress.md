@@ -1,6 +1,6 @@
 # Progress Report: process-monitor
 
-*Last Updated: 2026-09-03 01:20 IST*
+*Last Updated: 2026-09-03 02:37 IST*
 
 ## Project Status: Core T1-T24 milestones recorded; T22 forensic follow-up, T5 (Swift), T11 (NL Search), and T14 (ML) remain
 
@@ -58,7 +58,7 @@
   - Bounded durable history for at least 60 minutes, transactional writes, restart recovery path, threshold alerts with hysteresis, and atomic incident bundles
   - Snapshot/history APIs extended with response-size limits
   - **Dashboard UI (2026-09-01 22:25):** New "🚨 Watchdog" tab with active alerts panel (severity-colored cards), incident actions (create bundle / view bundles), alert history table, and auto-refresh every 30s
-  - TypeScript compilation and pure evidence tests pass; Jest parsing and local SQLite ABI issues remain
+  - TypeScript compilation and focused evidence tests pass; Playwright E2E passes 5/5
   - **Verified:** 6 active alerts, 11 incident bundles created today, APIs responding correctly
 
 ### What's Left to Build
@@ -86,7 +86,7 @@
 
 ### Known Issues
 
-- No formal test framework (Jest configured but no test files written)
+- Project tests are Playwright E2E tests; no Jest tests exist. `npm test` runs Playwright.
 - Battery impact data needs longer runtime on battery power (currently 0 events — needs 2% drop over 2+ min while not charging)
 - Telegram alerts not tested with real bot token (only verified code path works)
 - **Disk/Network chart y-axis**: Auto-scales correctly now, but very low activity periods show flat lines (expected — counters don't change when idle)
@@ -119,6 +119,7 @@
 | 2026-06-26 | Disk usage fix — prefer `/System/Volumes/Data` on macOS Catalina+ for accurate reporting | ✅ |
 | 2026-09-01 22:25 | T24: Watchdog dashboard UI — Active alerts, incident actions, history table, auto-refresh | ✅ |
 | 2026-09-01 | T24: Watchdog evidence collection, alerts, bounded history, and incident bundles | ✅ |
+| 2026-09-03 | T24: API/UI fixes, test-runner correction, audit remediation, deployment, and smoke verification | ✅ |
 | *Next* | T20 Phase 3: Backend APIs for per-volume disk, per-interface network, battery history | ✅ |
 | *Next* | T11a-d: Natural Language Search subtasks | ⬜ |
 

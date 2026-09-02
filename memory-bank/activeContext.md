@@ -1,6 +1,6 @@
 # Active Context
 
-*Last Updated: 2026-09-03 01:20 IST*
+*Last Updated: 2026-09-03 02:37 IST*
 
 ## Current Tasks
 
@@ -27,6 +27,16 @@
 **Memory-bank reconciliation (2026-09-03):** Corrected the stale project-status
 header and aligned the T24 dashboard notes with the current implementation at
 `8bcf9c2`. T22 remains the only active process-monitor task.
+
+**Deployment and validation (2026-09-03):** Fixed the remaining T24 alert/API/UI
+contracts in `8bcf9c2`, corrected the test runner in `3b901a8`, and remediated
+the npm audit findings in `b1cf1d9`. Build and Playwright E2E validation passed
+(5/5); both LaunchDaemons were restarted and post-restart API smoke tests passed
+on port 3456. The deployed build is `b1cf1d9`.
+
+**Process correction:** An unnecessary Jest dependency was briefly added because
+the test inventory was misread; it was removed after confirming the repository's
+tests are Playwright-only. No Jest suite exists.
 
 ### ✅ T23: TypeScript Compilation — Complete
 **Status:** All source fixed, compiled to dist/, services running with plain node.

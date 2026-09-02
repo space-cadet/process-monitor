@@ -137,3 +137,16 @@ Assets are cache-busted via query parameters:
 - Bundle creation is synchronous (no background job)
 - Alert history is client-side only (no server-side pagination)
 - Response-contract, alert-lifecycle, alert-ID, and bundle-listing fixes landed in commit `8bcf9c2`.
+
+## Follow-up Validation and Deployment (2026-09-03)
+
+- The project test inventory was corrected: there are no Jest tests; the
+  Playwright suite is the project test suite and is invoked by `npm test` and
+  `npm run test:e2e`.
+- Build passed and Playwright E2E passed 5/5 against an isolated rebuilt server.
+- Dependency lockfile updates in `b1cf1d9` resolved the npm audit findings:
+  Playwright 1.62.1, systeminformation 5.33.8, and esbuild 0.28.2; audit
+  reported zero vulnerabilities.
+- Both LaunchDaemons were restarted with the audited build. Post-restart
+  `/api/snapshot`, `/api/evidence-alerts`, and `/api/incident-bundles` smoke
+  tests passed on port 3456.

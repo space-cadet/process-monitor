@@ -1,3 +1,14 @@
+## 2026-09-03 — T24 Fixes, Security Remediation, and Deployment
+
+- Fixed alert lifecycle resolution, incident-bundle API/UI contracts, alert-ID
+  propagation, bundle listing/downloads, and dashboard field names (`8bcf9c2`).
+- Corrected the test setup: removed the unnecessary Jest dependency and made
+  Playwright the project test runner (`3b901a8`).
+- Remediated npm audit findings in the lockfile (`b1cf1d9`); audit returned zero
+  vulnerabilities.
+- Restarted both LaunchDaemons with the audited build and passed post-restart
+  API smoke tests on port 3456. Build and Playwright E2E (5/5) passed.
+
 ## 2026-09-03 — T24 Memory-bank Reconciliation
 
 - Reconciled project-status wording after T24 deployment and dashboard verification.
