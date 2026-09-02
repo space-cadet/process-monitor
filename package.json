@@ -14,7 +14,9 @@
     "start": "node dist/main.js",
     "test:watchdog": "node dist/test-watchdog-evidence.js",
     "test:watchdog-storage": "node dist/test-watchdog-storage.js",
-    "test": "jest"
+    "test": "jest --passWithNoTests --testPathIgnorePatterns=src/dashboard/test",
+    "test:unit": "jest --passWithNoTests --testPathIgnorePatterns=src/dashboard/test",
+    "test:e2e": "playwright test"
   },
   "keywords": [
     "macos",
@@ -26,6 +28,7 @@
   "author": "Deepak Vaid",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
     "jest": "^30.5.1",
